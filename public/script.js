@@ -8,8 +8,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Load real community data
     loadRealCommunityData();
     
+    // Load latest community posts
+    loadLatestPosts();
+    
     // Refresh data periodically (every 15 minutes)
     setInterval(loadRealCommunityData, 15 * 60 * 1000);
+    setInterval(loadLatestPosts, 15 * 60 * 1000);
 });
 
 // Set up video functionality
@@ -240,5 +244,114 @@ function setupCopyButton() {
             .catch(err => {
                 console.error('Could not copy text: ', err);
             });
+    });
+}
+
+// Load latest posts from the community API
+async function loadLatestPosts() {
+    const postsContainer = document.getElementById('posts-container');
+    if (!postsContainer) return;
+    
+    try {
+        // Clear any error states
+        postsContainer.innerHTML = '<div class="loading-message">Loading latest posts...</div>';
+        
+        // Get API URL
+        const apiUrl = getApiUrl();
+        
+        // Fetch latest posts data 
+        const response = await fetch(`${apiUrl}/api/community-posts`);
+        
+        if (!response.ok) {
+            throw new Error(`API responded with status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        // Update UI with posts data
+        displayPosts(data.posts);
+        
+    } catch (error) {
+        console.error('Failed to load community posts:', error);
+        
+        // Show fallback/error state
+        postsContainer.innerHTML = `
+            <div class="no-posts-message">
+                <p>Could not load latest posts.</p>
+                <p>Visit <a href="https://x.com/i/communities/1922392299163595186" target="_blank">our X community</a> to see all posts.</p>
+            </div>
+        `;
+    }
+}
+
+// Display the posts in the posts container
+function displayPosts(posts) {
+    const postsContainer = document.getElementById('posts-container');
+    
+    // Clear the container
+    postsContainer.innerHTML = '';
+    
+    if (!posts || posts.length === 0) {
+        postsContainer.innerHTML = `
+            <div class="no-posts-message">
+                <p>No recent posts found.</p>
+                <p>Visit <a href="https://x.com/i/communities/1922392299163595186" target="_blank">our X community</a> to see all posts.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // Limit to 3 most recent posts 
+    const displayPosts = posts.slice(0, 3);
+    
+    // Create HTML for each post
+    displayPosts.forEach(post => {
+        const postCard = document.createElement('div');
+        postCard.className = 'post-card';
+        
+        // Format the post date
+        const postDate = new Date(post.created_at);
+        const formattedDate = postDate.toLocaleDateString('en-US', {
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric'
+        });
+        
+        // Build the post HTML
+        let postHTML = `
+            <div class="post-header">
+                <div class="post-avatar" 
+                     style="background-image: url('${post.author.profile_image_url || ''}')"></div>
+                <div class="post-author">
+                    <div class="post-name">${post.author.name || 'Community Member'}</div>
+                    <div class="post-username">@${post.author.username || ''}</div>
+                </div>
+            </div>
+            <div class="post-content">${post.text || ''}</div>
+            <div class="post-date">${formattedDate}</div>
+        `;
+        
+        // Add media if available
+        if (post.media && post.media.length > 0) {
+            const mediaUrl = post.media[0];
+            postHTML += `
+                <div class="post-media">
+                    <img src="${mediaUrl}" alt="Post media" loading="lazy">
+                </div>
+            `;
+        }
+        
+        // Set the HTML and add to container
+        postCard.innerHTML = postHTML;
+        
+        // Make the post clickable to view on X
+        if (post.id) {
+            postCard.addEventListener('click', () => {
+                window.open(`https://x.com/${post.author.username}/status/${post.id}`, '_blank');
+            });
+            postCard.style.cursor = 'pointer';
+        }
+        
+        postsContainer.appendChild(postCard);
     });
 } 
