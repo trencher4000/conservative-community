@@ -28,6 +28,13 @@ header {
     align-items: center;
 }
 
+.logo-image {
+    max-width: 100%;
+    width: 600px;
+    height: auto;
+    margin-bottom: 0.5rem;
+}
+
 h1 {
     font-family: 'Bebas Neue', sans-serif;
     font-size: 4rem;
@@ -286,6 +293,10 @@ footer {
     h1 {
         font-size: 3.5rem;
     }
+    
+    .logo-image {
+        width: 450px;
+    }
 }
 
 @media (max-width: 576px) {
@@ -348,11 +359,19 @@ footer {
     .coin-id {
         font-size: 0.75rem;
     }
+    
+    .logo-image {
+        width: 300px;
+    }
 }
 
 @media (max-width: 400px) {
     h1 {
         font-size: 2.5rem;
+    }
+    
+    .logo-image {
+        width: 250px;
     }
 }
 
