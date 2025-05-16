@@ -159,7 +159,7 @@ function updateProfileGrid(profiles) {
         const andMoreProfile = document.createElement('div');
         andMoreProfile.className = 'profile-img and-more';
         andMoreProfile.setAttribute('title', 'Join to see all community members!');
-        andMoreProfile.textContent = '...';
+        andMoreProfile.innerHTML = '<span>MORE</span>';
         andMoreProfile.addEventListener('click', () => {
             window.open('https://x.com/i/communities/1922392299163595186', '_blank');
         });

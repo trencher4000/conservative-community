@@ -340,8 +340,33 @@ footer {
     text-align: center !important;
 }
 
+.profile-img.and-more span {
+    display: block;
+    width: 100%;
+    text-align: center;
+    line-height: 1.2;
+}
+
 .profile-img.and-more:hover {
     background-color: #cc2f27 !important;
+}
+
+/* Mobile adjustments for the "and more" button */
+@media (max-width: 768px) {
+    .profile-img.and-more {
+        font-size: 0.9rem !important;
+    }
+}
+
+@media (max-width: 576px) {
+    .profile-img.and-more {
+        font-size: 0.75rem !important;
+    }
+    
+    .profile-img.and-more span {
+        display: block;
+        line-height: 1;
+    }
 }
 
 /* Solana coin ID styling */
