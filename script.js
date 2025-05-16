@@ -306,32 +306,32 @@ async function loadLatestPosts() {
         const samplePosts = [
             {
                 id: '1',
-                text: 'America first means putting the interests of American citizens before those of other nations. Join us in the Conservative community for more!',
+                text: 'What will be the catalyst for $Cnsrv to soar?',
                 created_at: new Date().toISOString(),
                 author: {
-                    name: 'Conservative',
-                    username: 'conservative',
-                    profile_image_url: 'https://pbs.twimg.com/profile_images/1590968738358079488/IY9Gx6Ok_400x400.jpg'
+                    name: 'BreezySwingEasy',
+                    username: 'BreezySwingEasy',
+                    profile_image_url: 'https://pbs.twimg.com/profile_images/1642193374073716737/ALg37upL_400x400.jpg'
                 }
             },
             {
                 id: '2',
-                text: 'We believe in the Constitution, free speech, and traditional values. Our community is growing stronger every day!',
+                text: 'How much faith do you have in 3 letter agencies?',
                 created_at: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
                 author: {
-                    name: 'Patriot Member',
-                    username: 'patriot_member',
-                    profile_image_url: ''
+                    name: 'Kevin Sorbo',
+                    username: 'ksorbs',
+                    profile_image_url: 'https://pbs.twimg.com/profile_images/1719815676601815040/BrO-EAQT_400x400.jpg'
                 }
             },
             {
                 id: '3',
-                text: 'Limited government, free markets, and individual liberty are the cornerstone principles that we stand for.',
+                text: 'Krassencuck over here isn\'t used to accountability, hopefully the 5 years in prison and 250,000 dollar fine gives him time to think about his actions',
                 created_at: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
                 author: {
-                    name: 'Freedom Advocate',
-                    username: 'freedom_advocate',
-                    profile_image_url: ''
+                    name: 'BlitzProd',
+                    username: 'BlitzBrigadeNFL',
+                    profile_image_url: 'https://pbs.twimg.com/profile_images/1527344684807376896/6M-eU3yI_400x400.jpg'
                 }
             }
         ];
