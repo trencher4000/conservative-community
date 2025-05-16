@@ -6,6 +6,9 @@ const { TwitterApi } = require('twitter-api-v2');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// DISABLE ALL TWITTER API CALLS TO PREVENT RATE LIMITING
+const DISABLE_TWITTER_API = true;
+
 // Environment variables for Twitter API (can be set in Render environment variables)
 const TWITTER_API_KEY = process.env.TWITTER_API_KEY || '';
 const TWITTER_API_SECRET = process.env.TWITTER_API_SECRET || '';
@@ -18,20 +21,24 @@ const CONSERVATIVE_COMMUNITY_ID = '1922392299163595186';
 const API_CACHE_DURATION = 60 * 60 * 1000; // 1 hour in milliseconds
 let lastApiRequest = 0; // Track when we last made an API request
 
-// Initialize Twitter client if credentials are available
+// Initialize Twitter client if credentials are available AND API calls are enabled
 let twitterClient = null;
 try {
-  if (TWITTER_BEARER_TOKEN) {
-    twitterClient = new TwitterApi(TWITTER_BEARER_TOKEN);
-    console.log('Twitter API client initialized with bearer token');
-  } else if (TWITTER_API_KEY && TWITTER_API_SECRET) {
-    twitterClient = new TwitterApi({
-      appKey: TWITTER_API_KEY,
-      appSecret: TWITTER_API_SECRET
-    });
-    console.log('Twitter API client initialized with app credentials');
+  if (!DISABLE_TWITTER_API) {
+    if (TWITTER_BEARER_TOKEN) {
+      twitterClient = new TwitterApi(TWITTER_BEARER_TOKEN);
+      console.log('Twitter API client initialized with bearer token');
+    } else if (TWITTER_API_KEY && TWITTER_API_SECRET) {
+      twitterClient = new TwitterApi({
+        appKey: TWITTER_API_KEY,
+        appSecret: TWITTER_API_SECRET
+      });
+      console.log('Twitter API client initialized with app credentials');
+    } else {
+      console.warn('No Twitter API credentials found, using static data only');
+    }
   } else {
-    console.warn('No Twitter API credentials found, using static data only');
+    console.log('Twitter API calls are disabled to prevent rate limiting');
   }
 } catch (error) {
   console.error('Error initializing Twitter API client:', error.message);
@@ -431,12 +438,71 @@ async function fetchCommunityData() {
 // API endpoint to get community data
 app.get('/api/community-data', (req, res) => {
   console.log('API request received for community data');
+  
+  // Return static data when Twitter API is disabled
+  if (DISABLE_TWITTER_API) {
+    const staticCommunityData = {
+      profiles: [],
+      stats: {
+        members: 903,
+        impressions: 254789,
+        likes: 12543,
+        retweets: 3982
+      },
+      lastUpdated: new Date().toISOString(),
+      isStatic: true
+    };
+    return res.json(staticCommunityData);
+  }
+  
   res.json(communityData);
 });
 
-// New API endpoint to fetch community posts
+// API endpoint to fetch community posts
 app.get('/api/community-posts', async (req, res) => {
   console.log('API request received for community posts');
+  
+  // When Twitter API is disabled, return hardcoded tweets
+  if (DISABLE_TWITTER_API) {
+    const staticPosts = [
+      {
+        id: '1923147301851173129',
+        text: 'James Comey just deleted this death threat towards Trump from his Instagram.',
+        created_at: new Date('2024-05-15T00:00:00Z').toISOString(),
+        author: {
+          name: 'Kevin Sorbo',
+          username: 'ksorbs',
+          profile_image_url: '/images/snaplytics.io_X_ksorbs_profile_picture.jpg'
+        }
+      },
+      {
+        id: '1923132589851779496',
+        text: 'in a decent society, everyone in this room would be jailed.',
+        created_at: new Date('2024-05-15T00:00:00Z').toISOString(),
+        author: {
+          name: 'ANTUNES',
+          username: 'Antunes1',
+          profile_image_url: '/images/snaplytics.io_X_Antunes1_profile_picture.jpg'
+        }
+      },
+      {
+        id: '1922417753996341739',
+        text: 'NEW:\n\nRepublicans appear to be letting their guard down ahead of the 2026 midterms at the expense of President Trump.\n\nAccording to FEC filings reviewed by @LoomerUnleashed, the DSCC @dscc has paid $698,847.64 to the Elias Law Group since January 1, 2025, for services listed as "LEGAL SERVICES LEGAL FUND" and other legal work.',
+        created_at: new Date('2024-05-14T00:00:00Z').toISOString(),
+        author: {
+          name: 'Laura Loomer',
+          username: 'LauraLoomer',
+          profile_image_url: '/images/snaplytics.io_X_LauraLoomer_profile_picture.jpg'
+        }
+      }
+    ];
+    
+    return res.json({
+      success: true,
+      message: 'Static posts provided (Twitter API disabled)',
+      posts: staticPosts
+    });
+  }
   
   if (!twitterClient) {
     console.log('Twitter API client not available, returning error');
