@@ -149,19 +149,11 @@ async function fetchCommunityData() {
       // Create an extensive list of verified community members
       // This is our whitelist - ONLY these users will be shown
       const confirmedCommunityMembers = [
-        // Core community accounts - most important ones first
-        'CNSRV_', 'ConservativeOG', 'GreatJoeyJones', 'RaheemKassam', 
-        'DonaldJTrumpJr', 'RealCandaceO', 'mtgreenee', 'TuckerCarlson', 
-        'charliekirk11', 'IngrahamAngle', 'RubinReport', 'laurenboebert',
-        'elonmusk', 'Jim_Jordan', 'seanhannity', 'tedcruz', 'GovRonDeSantis',
-        'benshapiro', 'MattWalshBlog', 'dbongino', 'JackPosobiec', 'catturd2',
-        'Cernovich', 'hughhewitt', 'TomFitton', 'joerogan', 'kayleighmcenany',
-        'SebGorka', 'BuckSexton', 'glennbeck', 'DLoesch', 'mikepompeo',
-        'RandPaul', 'SarahHuckabee', 'jordanbpeterson', 'DineshDSouza',
-        'ScottAdamsSays', 'marklevinshow', 'BillOReilly', 'DiamondandSilk'
+        // Core community accounts only - verified to be in the community
+        'CNSRV_', 'ConservativeOG', 'GreatJoeyJones', 'RaheemKassam'
       ];
       
-      console.log(`Using a list of ${confirmedCommunityMembers.length} key community members`);
+      console.log(`Using a strictly verified list of ${confirmedCommunityMembers.length} confirmed community members`);
       
       // Verify community membership through API first if possible
       let verifiedMembers = [];
@@ -241,7 +233,7 @@ async function fetchCommunityData() {
       if (profiles.length === 0) {
         console.log('Using hardcoded fallback data since API fetching failed');
         
-        // Hardcoded data for key community members - 40 confirmed members only
+        // Hardcoded data for key community members - ONLY confirmed members
         profiles = [
           {
             name: "CNSRV",
@@ -249,97 +241,6 @@ async function fetchCommunityData() {
             picture: "https://pbs.twimg.com/profile_images/1707797390380593152/RQmfJWb2_400x400.jpg",
             followers_count: 32000,
             description: "Building the largest community of America-First Patriots on X."
-          },
-          {
-            name: "Donald Trump Jr.",
-            username: "DonaldJTrumpJr",
-            picture: "https://pbs.twimg.com/profile_images/1250944328806338560/4KvGwuZ6_400x400.jpg",
-            followers_count: 10200000,
-            description: "EVP of Development & Acquisitions The @Trump Organization, Father, Outdoorsman, In a past life Boardroom Advisor on The Apprentice."
-          },
-          {
-            name: "Candace Owens",
-            username: "RealCandaceO",
-            picture: "https://pbs.twimg.com/profile_images/1712839909128978432/2TYm1ITK_400x400.jpg",
-            followers_count: 4700000,
-            description: "Christian. Mother. Wife. Founder of GUHC & @BLEXIT. Unaffiliated."
-          },
-          {
-            name: "Marjorie Taylor Greene",
-            username: "mtgreenee",
-            picture: "https://pbs.twimg.com/profile_images/1620573046239289347/t0H7eQcM_400x400.jpg",
-            followers_count: 2600000,
-            description: "Congresswoman for GA-14 Mom, Christian, American 🇺🇸 MAGA 🇺🇸"
-          },
-          {
-            name: "Tucker Carlson",
-            username: "TuckerCarlson",
-            picture: "https://pbs.twimg.com/profile_images/1747756785499025408/X-WLWrPa_400x400.jpg",
-            followers_count: 10900000,
-            description: "Tucker Carlson Network @TCNetwork"
-          },
-          {
-            name: "Charlie Kirk",
-            username: "charliekirk11",
-            picture: "https://pbs.twimg.com/profile_images/1726400278852460545/Nrb2x6p__400x400.jpg",
-            followers_count: 2600000,
-            description: "Founder and President of Turning Point USA, TPUSA Action, and Turning Point Endowment. Trustee of America First Policy Institute."
-          },
-          {
-            name: "Laura Ingraham",
-            username: "IngrahamAngle",
-            picture: "https://pbs.twimg.com/profile_images/1522381921523933184/D0ZHUaYP_400x400.jpg",
-            followers_count: 3400000,
-            description: "Host of 'The Ingraham Angle' weeknights at 10pm ET on @FoxNews. My new podcast: https://t.co/1aqoFtZFPU RT does not equal endorsement."
-          },
-          {
-            name: "Dave Rubin",
-            username: "RubinReport",
-            picture: "https://pbs.twimg.com/profile_images/1723786465034362880/-uREeXBh_400x400.jpg",
-            followers_count: 1400000,
-            description: "Thinking out loud, cracking jokes and building the future. Host of The Rubin Report, author of NYT best-sellers Don't Burn This Book and Don't Burn This Country"
-          },
-          {
-            name: "Lauren Boebert",
-            username: "laurenboebert",
-            picture: "https://pbs.twimg.com/profile_images/1682459374267170816/8LJGmKcV_400x400.jpg",
-            followers_count: 2300000,
-            description: "Congresswoman for CO-03, Small business owner, wife, mom of four boys."
-          },
-          {
-            name: "Elon Musk",
-            username: "elonmusk",
-            picture: "https://pbs.twimg.com/profile_images/1683325380441128960/yRsRRjGO_400x400.jpg",
-            followers_count: 159000000,
-            description: "I work at SpaceX and Tesla 𝕏 = Ø̷̘̗͚"
-          },
-          {
-            name: "Jim Jordan",
-            username: "Jim_Jordan",
-            picture: "https://pbs.twimg.com/profile_images/1536748389125038080/SEKjnbfK_400x400.jpg",
-            followers_count: 3200000,
-            description: "Proudly serving the Fourth District of Ohio"
-          },
-          {
-            name: "Sean Hannity",
-            username: "seanhannity",
-            picture: "https://pbs.twimg.com/profile_images/1683185908244246528/8SsgLrzk_400x400.jpg",
-            followers_count: 6300000,
-            description: "TV Host Fox News Channel 9PM EST. Nationally Syndicated Radio Host 3-6PM EST."
-          },
-          {
-            name: "Ted Cruz",
-            username: "tedcruz",
-            picture: "https://pbs.twimg.com/profile_images/1392585981839572993/Nnh5LilE_400x400.jpg",
-            followers_count: 5400000,
-            description: "U.S. Senator for Texas. Pray for peace in Jerusalem. Psalm 137:5-6"
-          },
-          {
-            name: "Gov. Ron DeSantis",
-            username: "GovRonDeSantis",
-            picture: "https://pbs.twimg.com/profile_images/1267573226265759744/BGAE0ulc_400x400.jpg",
-            followers_count: 2300000,
-            description: "Florida's 46th Governor"
           },
           {
             name: "Conservative OG",
@@ -356,172 +257,11 @@ async function fetchCommunityData() {
             description: "Thank you for the privilege of your time. Fox News Contributor & Host. @FoxBusiness @FoxNews @TheFive Retired USMC EOD"
           },
           {
-            name: "Ben Shapiro",
-            username: "benshapiro",
-            picture: "https://pbs.twimg.com/profile_images/1610755652669526023/qY8rYfEQ_400x400.jpg",
-            followers_count: 5900000,
-            description: "EIC @realDailyWire; host of The Ben Shapiro Show (@BenShapiroShow); author of 10 NYT bestsellers; husband, father, orthodox Jew."
-          },
-          {
-            name: "Matt Walsh",
-            username: "MattWalshBlog",
-            picture: "https://pbs.twimg.com/profile_images/1655588987248136193/4BhHT6cB_400x400.jpg",
-            followers_count: 2700000,
-            description: "Theocratic fascist, bestselling children's author, founder of the Anti-Matt Walsh Institute for Women Respecters, and #1 NYT bestselling author"
-          },
-          {
-            name: "Dan Bongino",
-            username: "dbongino",
-            picture: "https://pbs.twimg.com/profile_images/1494020708876398614/p-5S5P2K_400x400.jpg",
-            followers_count: 2800000,
-            description: "Host of The Dan Bongino Show. Executive Producer, Conservative Review. Former Secret Service Agent, and NYPD officer. Doing my best to fight the good fight."
-          },
-          {
-            name: "Jack Posobiec",
-            username: "JackPosobiec",
-            picture: "https://pbs.twimg.com/profile_images/1683511207633858561/EY7L0E5o_400x400.jpg",
-            followers_count: 2300000,
-            description: "National Security Researcher, TPUSA. Telling stories from America and around the world. Ex-USIC TS//SCI."
-          },
-          {
-            name: "Catturd",
-            username: "catturd2",
-            picture: "https://pbs.twimg.com/profile_images/1667381756160954368/Z72m2yAO_400x400.jpg",
-            followers_count: 2400000,
-            description: "The MAGA cat who talks shit."
-          },
-          {
-            name: "Mike Cernovich",
-            username: "Cernovich",
-            picture: "https://pbs.twimg.com/profile_images/1550625507942785024/cVt-Uujx_400x400.jpg",
-            followers_count: 1600000,
-            description: "Author, filmmaker, lawyer who left the case law life behind. Married to a Persian-American immigrant."
-          },
-          {
-            name: "Hugh Hewitt",
-            username: "hughhewitt",
-            picture: "https://pbs.twimg.com/profile_images/1733524883947454464/LNRMpb_U_400x400.jpg",
-            followers_count: 480000,
-            description: "Host of @MorningHewittShow @SalemRadioNet, contributor @NBCNews @TODAYshow @MeetThePress and @WashingtonPost."
-          },
-          {
-            name: "Tim Scott",
-            username: "SenatorTimScott",
-            picture: "https://pbs.twimg.com/profile_images/1348673173987532802/6vfNtJ7k_400x400.jpg",
-            followers_count: 912000,
-            description: "United States Senator from South Carolina"
-          },
-          {
-            name: "Tom Fitton",
-            username: "TomFitton",
-            picture: "https://pbs.twimg.com/profile_images/1685336603835904000/8Gk7MpVW_400x400.jpg",
-            followers_count: 2100000,
-            description: "President of Judicial Watch @JudicialWatch."
-          },
-          {
-            name: "Joe Rogan",
-            username: "joerogan",
-            picture: "https://pbs.twimg.com/profile_images/1653559658854817803/UxQMl78K_400x400.jpg",
-            followers_count: 10800000,
-            description: "Stand up comic, podcast host, TV host, husband, father, bow hunter."
-          },
-          {
-            name: "Kayleigh McEnany",
-            username: "kayleighmcenany",
-            picture: "https://pbs.twimg.com/profile_images/1346628908597850113/TKUcKHhH_400x400.jpg",
-            followers_count: 2600000,
-            description: "Co-Host of @Outnumbered. Former White House Press Secretary. Proud Mama & Wife. @Harvard_Law JD. Author of For Such A Time As This."
-          },
-          {
-            name: "Sebastian Gorka",
-            username: "SebGorka",
-            picture: "https://pbs.twimg.com/profile_images/1351641319022997505/I2TEPvEi_400x400.jpg",
-            followers_count: 1100000,
-            description: "Host of AMERICA First, @GoUSA_Radio-@SalemMediaGrp, Nationally Syndicated. Fox News Contributor. Faith, Family, Freedom."
-          },
-          {
-            name: "Buck Sexton",
-            username: "BuckSexton",
-            picture: "https://pbs.twimg.com/profile_images/1684956941452099584/OO0qsI9e_400x400.jpg",
-            followers_count: 1000000,
-            description: "Host, The Clay Travis and Buck Sexton Show. @ClayAndBuck."
-          },
-          {
-            name: "Glenn Beck",
-            username: "glennbeck",
-            picture: "https://pbs.twimg.com/profile_images/1545060678927876099/AE2tz4TW_400x400.jpg",
-            followers_count: 1600000,
-            description: "Founder of @theblaze, @blazetv, @mercuryone & @americanjourney. Nationally syndicated radio & TV host."
-          },
-          {
-            name: "Dana Loesch",
-            username: "DLoesch",
-            picture: "https://pbs.twimg.com/profile_images/1707809631359574016/JzRUprXD_400x400.jpg",
-            followers_count: 1200000,
-            description: "Nationally syndicated radio and award-winning TV host, bestselling author. 2A advocate. Wife, mom, homeschool mom, country music fan."
-          },
-          {
-            name: "Mike Pompeo",
-            username: "mikepompeo",
-            picture: "https://pbs.twimg.com/profile_images/1747729563204075520/FsEMRJ95_400x400.jpg",
-            followers_count: 1300000,
-            description: "Proud Kansan and American. 70th Secretary of State. Husband, dad, Army vet, and former Director of the CIA."
-          },
-          {
-            name: "Senator Rand Paul",
-            username: "RandPaul",
-            picture: "https://pbs.twimg.com/profile_images/1683505165196046337/5CJg-9Q__400x400.jpg",
-            followers_count: 3500000,
-            description: "I fight for the Constitution, individual liberty and the freedoms that make this country great."
-          },
-          {
-            name: "Governor Sarah Huckabee Sanders",
-            username: "SarahHuckabee",
-            picture: "https://pbs.twimg.com/profile_images/1614994788977291265/5qXW6Qbg_400x400.jpg",
-            followers_count: 1100000,
-            description: "Governor of Arkansas. Former White House Press Secretary. Proud wife and mom of three."
-          },
-          {
-            name: "Jordan Peterson",
-            username: "jordanbpeterson",
-            picture: "https://pbs.twimg.com/profile_images/1760071475763720192/aKx2HCSO_400x400.jpg",
-            followers_count: 4600000,
-            description: "Follow my Daily Wire companion account @JordanBPetersonDW for the launch of @DailyWirePlus"
-          },
-          {
-            name: "Dinesh D'Souza",
-            username: "DineshDSouza",
-            picture: "https://pbs.twimg.com/profile_images/1527362404462166018/wrEZ9vDz_400x400.jpg",
-            followers_count: 2700000,
-            description: "Author, filmmaker, podcaster. My latest feature film is 2000 Mules, available at 2000Mules.com."
-          },
-          {
-            name: "Scott Adams",
-            username: "ScottAdamsSays",
-            picture: "https://pbs.twimg.com/profile_images/1736872558864293888/vu_2s4GI_400x400.jpg",
-            followers_count: 1200000,
-            description: "Co-founder of WhenHub. Creator of Dilbert. Author. Sometimes interesting."
-          },
-          {
-            name: "Mark Levin",
-            username: "marklevinshow",
-            picture: "https://pbs.twimg.com/profile_images/756218386114347008/pQ7G5t3N_400x400.jpg",
-            followers_count: 3300000,
-            description: "Constitutional Conservative, Radio & TV Host, Lawyer, Author"
-          },
-          {
-            name: "Bill O'Reilly",
-            username: "BillOReilly",
-            picture: "https://pbs.twimg.com/profile_images/1683192166943834114/BdXkUQV4_400x400.jpg",
-            followers_count: 2700000,
-            description: "America's Bestselling Historian. Join billoreilly.com."
-          },
-          {
-            name: "Diamond and Silk",
-            username: "DiamondandSilk",
-            picture: "https://pbs.twimg.com/profile_images/1633180820969730050/XOcNvC37_400x400.jpg",
-            followers_count: 1400000,
-            description: "Biological Sisters in Love with America! Authors of the Best Selling Book Uprising, 'Diamond & Silk The Untold Story' A CURE, Not a SHOT"
+            name: "Raheem Kassam",
+            username: "RaheemKassam",
+            picture: "https://pbs.twimg.com/profile_images/1641882393725812738/cNHisq0E_400x400.jpg",
+            followers_count: 290000,
+            description: "Editor-in-Chief of @thenationalpulse and host of The National Pulse podcast. Former Editor of Breitbart London. Subscribe at http://raheemkassam.substack.com"
           },
           // Add the "and more" indicator profile
           {
