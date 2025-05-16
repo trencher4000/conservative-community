@@ -135,29 +135,11 @@ function updateProfileGrid(profiles) {
             const profileImg = document.createElement('div');
             profileImg.className = 'profile-img';
             
-            // Use the profile picture or a default if missing
-            if (profile.picture && profile.picture.trim() !== '') {
-                // Ensure Twitter image URLs are properly formatted
-                const imageUrl = profile.picture.replace('_normal', '_400x400');
-                
-                // Test if the image is valid
-                const testImg = new Image();
-                testImg.onload = function() {
-                    // Image loaded successfully, set the background
-                    profileImg.style.backgroundImage = `url('${imageUrl}')`;
-                };
-                testImg.onerror = function() {
-                    // Image failed to load, add no-image class
-                    profileImg.classList.add('no-image');
-                    console.log(`Failed to load image for ${profile.username}`);
-                };
-                testImg.src = imageUrl;
-                
-                // Set image immediately (will be replaced if it fails to load)
-                profileImg.style.backgroundImage = `url('${imageUrl}')`;
-            } else {
-                profileImg.classList.add('no-image');
-            }
+            // Force clear any default background image
+            profileImg.style.backgroundImage = 'none';
+            
+            // Process the profile image
+            loadProfileImage(profileImg, profile);
             
             // Add tooltip with name and username
             profileImg.setAttribute('title', `${profile.name} (@${profile.username})`);
@@ -187,6 +169,48 @@ function updateProfileGrid(profiles) {
         // Fallback to basic grid if no profiles
         generateBasicProfileGrid();
     }
+}
+
+// Handle loading of profile images with proper error handling
+function loadProfileImage(element, profile) {
+    if (!profile || !profile.picture || profile.picture.includes('imgur.com')) {
+        // Invalid image or imgur placeholder detected
+        console.warn(`Invalid or placeholder image detected for ${profile?.username || 'unknown'}`);
+        element.classList.add('no-image');
+        return;
+    }
+    
+    // Clean and validate the URL
+    let imageUrl = profile.picture.trim();
+    
+    // Force HTTPS
+    if (imageUrl.startsWith('http:')) {
+        imageUrl = imageUrl.replace('http:', 'https:');
+    }
+    
+    // Ensure maximum size for Twitter images
+    if (imageUrl.includes('twimg.com') && imageUrl.includes('_normal.')) {
+        imageUrl = imageUrl.replace('_normal', '_400x400');
+    }
+    
+    console.log(`Loading image for ${profile.username}: ${imageUrl}`);
+    
+    // Pre-load the image to verify it works
+    const img = new Image();
+    
+    img.onload = function() {
+        // Image loaded successfully
+        element.style.backgroundImage = `url(${imageUrl})`;
+    };
+    
+    img.onerror = function() {
+        // Image failed to load
+        console.error(`Failed to load image for ${profile.username}: ${imageUrl}`);
+        element.classList.add('no-image');
+    };
+    
+    // Start loading
+    img.src = imageUrl;
 }
 
 // Update stats with real data

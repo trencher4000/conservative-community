@@ -329,7 +329,7 @@ async function fetchCommunityData() {
           {
             name: "...and hundreds more Patriots!",
             username: "more_patriots",
-            picture: "https://pbs.twimg.com/profile_images/1643313110314774528/39rnzBQV_400x400.jpg", // Fixed to a reliable image source
+            picture: null, // No image - will use the default styling
             followers_count: 0,
             description: "Join over 900 Conservative Patriots in our community"
           }
@@ -358,9 +358,19 @@ async function fetchCommunityData() {
     
     // Update community data with real API data
     if (uniqueProfiles.length > 0) {
+      // Filter out any profiles with Imgur images
+      const filteredProfiles = uniqueProfiles.filter(profile => {
+        const hasImgur = profile.picture && profile.picture.includes('imgur.com');
+        if (hasImgur) {
+          console.log(`Removing profile with Imgur placeholder: ${profile.username}`);
+          return false;
+        }
+        return true;
+      });
+      
       communityData = {
-        profiles: uniqueProfiles,
-      stats: {
+        profiles: filteredProfiles,
+        stats: {
           members: communityMemberCount,
           impressions: 254789,
           likes: 12543,
