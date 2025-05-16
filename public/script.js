@@ -127,7 +127,7 @@ function getApiUrl() {
     
     // REPLACE_WITH_RENDER_URL - DO NOT MODIFY THIS COMMENT
     // When deployed to Render, replace this line with your actual Render URL
-    return 'https://conservative-community-scraper.onrender.com';
+    return 'https://conservativeog.onrender.com';
 }
 
 // Show loading indicators
