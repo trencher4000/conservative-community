@@ -5,12 +5,86 @@ document.addEventListener('DOMContentLoaded', () => {
     // Set up copy button functionality
     setupCopyButton();
     
+    // Set up refresh button
+    setupRefreshButton();
+    
     // Load real community data
     loadRealCommunityData();
     
     // Refresh data periodically (every 5 minutes)
     setInterval(loadRealCommunityData, 5 * 60 * 1000);
 });
+
+// Set up refresh button functionality
+function setupRefreshButton() {
+    // Create refresh button
+    const refreshButton = document.createElement('button');
+    refreshButton.className = 'refresh-btn';
+    refreshButton.innerHTML = '🔄 Refresh Data';
+    
+    // Create data source indicator
+    const dataSourceIndicator = document.createElement('div');
+    dataSourceIndicator.id = 'data-source';
+    dataSourceIndicator.className = 'data-source static';
+    dataSourceIndicator.innerHTML = 'Using Static Data';
+    
+    // Add both elements to the page
+    const statsContainer = document.querySelector('.stats-container');
+    statsContainer.insertAdjacentElement('afterend', refreshButton);
+    statsContainer.insertAdjacentElement('afterend', dataSourceIndicator);
+    
+    // Add click handler
+    refreshButton.addEventListener('click', async () => {
+        try {
+            refreshButton.disabled = true;
+            refreshButton.innerHTML = '⏳ Refreshing...';
+            dataSourceIndicator.innerHTML = 'Refreshing Data...';
+            
+            const apiUrl = getApiUrl();
+            const response = await fetch(`${apiUrl}/api/refresh-data`, {
+                method: 'POST'
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Failed to refresh: ${response.status}`);
+            }
+            
+            const result = await response.json();
+            console.log('Refresh result:', result);
+            
+            // Show success message
+            refreshButton.innerHTML = '✅ Refreshed!';
+            
+            // Update source indicator
+            if (result.isStatic) {
+                dataSourceIndicator.className = 'data-source static';
+                dataSourceIndicator.innerHTML = 'Using Static Data';
+            } else {
+                dataSourceIndicator.className = 'data-source live';
+                dataSourceIndicator.innerHTML = 'Using Live Data';
+            }
+            
+            // Load the updated data
+            await loadRealCommunityData();
+            
+            // Reset button after 2 seconds
+            setTimeout(() => {
+                refreshButton.disabled = false;
+                refreshButton.innerHTML = '🔄 Refresh Data';
+            }, 2000);
+            
+        } catch (error) {
+            console.error('Error refreshing data:', error);
+            refreshButton.innerHTML = '❌ Failed';
+            
+            // Reset button after 2 seconds
+            setTimeout(() => {
+                refreshButton.disabled = false;
+                refreshButton.innerHTML = '🔄 Refresh Data';
+            }, 2000);
+        }
+    });
+}
 
 // Set up video functionality
 function setupVideo() {
@@ -80,6 +154,18 @@ async function loadRealCommunityData() {
         updateProfileGrid(data.profiles);
         updateStats(data.stats);
         
+        // Update data source indicator
+        const dataSourceIndicator = document.getElementById('data-source');
+        if (dataSourceIndicator) {
+            if (data.isStatic) {
+                dataSourceIndicator.className = 'data-source static';
+                dataSourceIndicator.innerHTML = 'Using Static Data';
+            } else {
+                dataSourceIndicator.className = 'data-source live';
+                dataSourceIndicator.innerHTML = 'Using Live Data';
+            }
+        }
+        
         // Hide loading indicators
         hideLoadingState();
         
@@ -94,6 +180,13 @@ async function loadRealCommunityData() {
         
         // Show error message
         showErrorMessage('Could not load real community data. Using placeholders instead.');
+        
+        // Update data source indicator
+        const dataSourceIndicator = document.getElementById('data-source');
+        if (dataSourceIndicator) {
+            dataSourceIndicator.className = 'data-source static';
+            dataSourceIndicator.innerHTML = 'Using Static Data';
+        }
     }
 }
 

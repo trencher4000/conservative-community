@@ -5,6 +5,15 @@ const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Dynamic puppeteer import to prevent startup failures
+let puppeteer;
+try {
+  puppeteer = require('puppeteer');
+  console.log('Puppeteer loaded successfully');
+} catch (error) {
+  console.warn('Puppeteer not available, using static data only:', error.message);
+}
+
 // Enable CORS for all routes
 app.use(cors());
 app.use(express.json());
@@ -31,20 +40,21 @@ app.get('/health', (req, res) => {
   res.status(200).send('OK');
 });
 
-// Static community data
-const staticCommunityData = {
-  profiles: generateProfiles(20),
+// Initial static community data (fallback)
+let communityData = {
+  profiles: generateDefaultProfiles(20),
   stats: {
     members: 600,
     impressions: 254789,
     likes: 12543,
     retweets: 3982
   },
-  lastUpdated: new Date().toISOString()
+  lastUpdated: new Date().toISOString(),
+  isStatic: true
 };
 
-// Generate profile data
-function generateProfiles(count) {
+// Generate default profile data as fallback
+function generateDefaultProfiles(count) {
   return Array.from({ length: count }, (_, i) => ({
     name: `Conservative Member ${i + 1}`,
     picture: `https://via.placeholder.com/400?text=Member${i+1}`,
@@ -52,32 +62,202 @@ function generateProfiles(count) {
   }));
 }
 
+// Function to scrape X community data
+async function scrapeXCommunity() {
+  if (!puppeteer) {
+    console.log('Puppeteer not available, skipping scrape');
+    return false;
+  }
+
+  console.log('Starting scrape of X community...');
+  let browser;
+  try {
+    browser = await puppeteer.launch({
+      headless: 'new',
+      args: [
+        '--no-sandbox', 
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage', // Important for Render
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--single-process',
+        '--disable-gpu'
+      ]
+    });
+    
+    const page = await browser.newPage();
+    
+    // Set viewport and user agent to mimic a normal browser
+    await page.setViewport({ width: 1280, height: 800 });
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
+    
+    // Add a timeout to prevent hanging
+    const maxOperationTime = 2 * 60 * 1000; // 2 minutes
+    const operationTimeout = setTimeout(() => {
+      console.error('Scraping operation timed out');
+      if (browser) browser.close().catch(err => console.error('Error closing browser:', err));
+    }, maxOperationTime);
+    
+    // Go to the X community page
+    console.log('Navigating to community page...');
+    await page.goto('https://x.com/i/communities/1922392299163595186', {
+      waitUntil: 'networkidle2',
+      timeout: 60000
+    });
+    
+    // Wait for content to load
+    console.log('Waiting for content to load...');
+    await page.waitForSelector('img[src*="profile_images"]', { timeout: 60000 });
+    
+    console.log('Page loaded, extracting data...');
+    
+    // Extract member count
+    const memberCount = await page.evaluate(() => {
+      const memberElem = Array.from(document.querySelectorAll('span')).find(el => 
+        el.textContent && el.textContent.includes('member'));
+      if (memberElem) {
+        const text = memberElem.textContent;
+        const match = text.match(/(\d+(?:,\d+)*)/);
+        return match ? match[0].replace(/,/g, '') : 0;
+      }
+      return 600; // Fallback value
+    });
+    
+    console.log(`Found member count: ${memberCount}`);
+    
+    // Extract profile images
+    const profiles = await page.evaluate(() => {
+      const imgElements = document.querySelectorAll('img[src*="profile_images"]');
+      return Array.from(imgElements).slice(0, 100).map(img => {
+        const name = img.getAttribute('alt') || 'Community Member';
+        // Get larger profile image by modifying URL
+        let src = img.getAttribute('src');
+        src = src.replace('_normal', '_400x400');
+        
+        return {
+          name: name,
+          picture: src,
+          username: name.replace(/[^a-zA-Z0-9]/g, '').toLowerCase()
+        };
+      });
+    });
+    
+    console.log(`Found ${profiles.length} profiles`);
+    
+    // Get engagement stats by aggregating from visible posts
+    const stats = await page.evaluate(() => {
+      const likeCountElements = document.querySelectorAll('[data-testid="like"]');
+      const retweetCountElements = document.querySelectorAll('[data-testid="retweet"]');
+      
+      let likes = 0;
+      let retweets = 0;
+      
+      likeCountElements.forEach(el => {
+        const text = el.textContent;
+        if (text) {
+          const match = text.match(/(\d+)/);
+          if (match) {
+            likes += parseInt(match[0]);
+          }
+        }
+      });
+      
+      retweetCountElements.forEach(el => {
+        const text = el.textContent;
+        if (text) {
+          const match = text.match(/(\d+)/);
+          if (match) {
+            retweets += parseInt(match[0]);
+          }
+        }
+      });
+      
+      // Estimate impressions based on typical engagement rates
+      const impressions = (likes + retweets) * 50;
+      
+      return {
+        impressions,
+        likes,
+        retweets
+      };
+    });
+    
+    // Clear the timeout since we're done
+    clearTimeout(operationTimeout);
+    
+    // Update community data with real scraped data
+    communityData = {
+      profiles: profiles.length > 0 ? profiles : communityData.profiles,
+      stats: {
+        members: parseInt(memberCount) || communityData.stats.members,
+        impressions: stats.impressions || communityData.stats.impressions,
+        likes: stats.likes || communityData.stats.likes,
+        retweets: stats.retweets || communityData.stats.retweets
+      },
+      lastUpdated: new Date().toISOString(),
+      isStatic: false
+    };
+    
+    console.log('Data scraped successfully');
+    return true;
+    
+  } catch (error) {
+    console.error('Error during scraping:', error);
+    return false;
+  } finally {
+    if (browser) {
+      await browser.close().catch(err => console.error('Error closing browser:', err));
+    }
+  }
+}
+
 // API endpoint to get community data
 app.get('/api/community-data', (req, res) => {
   console.log('API request received for community data');
-  res.json(staticCommunityData);
+  res.json(communityData);
 });
 
-// Trigger a manual refresh of the data (simulation)
+// Trigger a manual refresh of the data
 app.post('/api/refresh-data', async (req, res) => {
   try {
     console.log('Manual refresh requested');
-    // Update timestamp to simulate refresh
-    staticCommunityData.lastUpdated = new Date().toISOString();
+    
+    if (puppeteer) {
+      console.log('Attempting to scrape fresh data...');
+      const success = await scrapeXCommunity();
+      
+      if (success) {
+        console.log('Data refreshed with scraped data');
+        return res.json({ 
+          success: true, 
+          message: 'Data refreshed with real community data',
+          isStatic: false
+        });
+      }
+    }
+    
+    // Fallback to static refresh if scraping fails or puppeteer isn't available
+    console.log('Using static data refresh');
+    
+    // Update timestamp
+    communityData.lastUpdated = new Date().toISOString();
     
     // Add a few more profiles to simulate change
-    const newProfiles = generateProfiles(3);
-    staticCommunityData.profiles = [...newProfiles, ...staticCommunityData.profiles.slice(0, 17)];
+    const newProfiles = generateDefaultProfiles(3);
+    communityData.profiles = [...newProfiles, ...communityData.profiles.slice(0, 17)];
     
     // Update stats slightly
-    staticCommunityData.stats.impressions += Math.floor(Math.random() * 1000);
-    staticCommunityData.stats.likes += Math.floor(Math.random() * 100);
-    staticCommunityData.stats.retweets += Math.floor(Math.random() * 50);
+    communityData.stats.impressions += Math.floor(Math.random() * 1000);
+    communityData.stats.likes += Math.floor(Math.random() * 100);
+    communityData.stats.retweets += Math.floor(Math.random() * 50);
+    communityData.isStatic = true;
     
-    console.log('Data refreshed successfully');
+    console.log('Data refreshed with static data');
     res.json({ 
       success: true, 
-      message: 'Data refreshed successfully' 
+      message: 'Data refreshed with simulated data',
+      isStatic: true
     });
   } catch (error) {
     console.error('Error refreshing data:', error);
@@ -164,11 +344,26 @@ app.use((err, req, res, next) => {
   res.status(500).send('Something broke!');
 });
 
-// Start the server
+// Start the server and initial scrape
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Health check available at: http://localhost:${PORT}/health`);
   console.log(`API endpoint available at: http://localhost:${PORT}/api/community-data`);
   console.log(`Current directory: ${__dirname}`);
   console.log(`Node environment: ${process.env.NODE_ENV}`);
+  
+  // Try to scrape on startup
+  if (puppeteer) {
+    // Wait a bit for the server to be fully initialized
+    setTimeout(async () => {
+      console.log('Running initial scrape...');
+      try {
+        await scrapeXCommunity();
+      } catch (error) {
+        console.error('Initial scrape failed:', error);
+      }
+    }, 10000); // Wait 10 seconds before first scrape
+  } else {
+    console.log('Puppeteer not available, skipping initial scrape');
+  }
 }); 
