@@ -217,9 +217,22 @@ async function fetchCommunityData() {
                 // Mark as fetched
                 fetchedUsernames.add(user.username.toLowerCase());
                 
+                // Get the profile image URL - ensure we're getting the full size version
+                let profileImageUrl = user.profile_image_url || '';
+                
+                // Twitter API returns small images by default, replace to get larger version
+                if (profileImageUrl && profileImageUrl.includes('_normal.')) {
+                  profileImageUrl = profileImageUrl.replace('_normal', '_400x400');
+                }
+                
+                // Ensure image URLs use HTTPS
+                if (profileImageUrl && profileImageUrl.startsWith('http:')) {
+                  profileImageUrl = profileImageUrl.replace('http:', 'https:');
+                }
+                
                 return {
                   name: user.name,
-                  picture: user.profile_image_url ? user.profile_image_url.replace('_normal', '_400x400') : null,
+                  picture: profileImageUrl,
                   username: user.username,
                   followers_count: user.public_metrics?.followers_count || 0,
                   description: user.description
@@ -316,7 +329,7 @@ async function fetchCommunityData() {
           {
             name: "...and hundreds more Patriots!",
             username: "more_patriots",
-            picture: "https://i.imgur.com/JnhnxJJ.png", // A generic patriotic or conservative-themed image
+            picture: "https://pbs.twimg.com/profile_images/1643313110314774528/39rnzBQV_400x400.jpg", // Fixed to a reliable image source
             followers_count: 0,
             description: "Join over 900 Conservative Patriots in our community"
           }
