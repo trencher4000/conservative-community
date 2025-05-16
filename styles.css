@@ -27,6 +27,14 @@ h1 {
     margin-bottom: 0.5rem;
 }
 
+.bebas-header {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 4rem;
+    letter-spacing: 2px;
+    margin-bottom: 0.25rem;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
 .tagline {
     font-size: 1.1rem;
     margin-bottom: 1.5rem;
@@ -280,6 +288,13 @@ footer {
     flex-wrap: wrap;
 }
 
+.coin-label {
+    font-weight: bold;
+    color: #ff3b30;
+    margin-right: 5px;
+    font-size: 0.9rem;
+}
+
 .coin-id {
     font-size: 0.85rem;
     font-family: monospace;
@@ -288,20 +303,30 @@ footer {
     border-radius: 4px;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: calc(100% - 60px);
+    max-width: calc(100% - 85px);
     white-space: nowrap;
 }
 
 .profile-img.and-more {
     background-color: #ff3b30;
     color: #fff;
-    font-size: 24px;
+    font-size: 16px;
     font-weight: bold;
     display: flex;
     align-items: center;
     justify-content: center;
+    text-align: center;
+    line-height: 1.2;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.profile-img.and-more span {
+    display: block;
+    padding: 5px;
 }
 
 .profile-img.and-more:hover {
     background-color: #cc2f27;
+    transform: scale(1.05);
 } 
