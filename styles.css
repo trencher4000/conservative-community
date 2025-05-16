@@ -256,4 +256,18 @@ footer {
     text-overflow: ellipsis;
     max-width: calc(100% - 60px);
     white-space: nowrap;
+}
+
+.profile-img.and-more {
+    background-color: #ff3b30;
+    color: #fff;
+    font-size: 24px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.profile-img.and-more:hover {
+    background-color: #cc2f27;
 } 

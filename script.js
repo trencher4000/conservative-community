@@ -126,8 +126,12 @@ function updateProfileGrid(profiles) {
         
         console.log(`Displaying ${sortedProfiles.length} verified community member profiles`);
         
+        // Limit to 50 profiles (5 rows of 10)
+        const displayLimit = 50;
+        const displayProfiles = sortedProfiles.slice(0, displayLimit);
+        
         // Create profile elements for each member
-        sortedProfiles.forEach(profile => {
+        displayProfiles.forEach((profile, index) => {
             const profileImg = document.createElement('div');
             profileImg.className = 'profile-img';
             
@@ -151,6 +155,17 @@ function updateProfileGrid(profiles) {
             
             profileGrid.appendChild(profileImg);
         });
+        
+        // Add the "and more" indicator after the 5th row
+        const andMoreProfile = document.createElement('div');
+        andMoreProfile.className = 'profile-img and-more';
+        andMoreProfile.setAttribute('title', 'Join to see all community members!');
+        andMoreProfile.textContent = '...';
+        andMoreProfile.addEventListener('click', () => {
+            window.open('https://x.com/i/communities/1922392299163595186', '_blank');
+        });
+        andMoreProfile.style.cursor = 'pointer';
+        profileGrid.appendChild(andMoreProfile);
     } else {
         // Fallback to basic grid if no profiles
         generateBasicProfileGrid();

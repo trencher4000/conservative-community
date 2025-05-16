@@ -149,11 +149,17 @@ async function fetchCommunityData() {
       // Create an extensive list of verified community members
       // This is our whitelist - ONLY these users will be shown
       const confirmedCommunityMembers = [
-        // Core community accounts
-        'CNSRV_', 'ConservativeOG', 'GreatJoeyJones', 'RaheemKassam',
-        // Verified community members
+        // Priority row 1 - most important community accounts
+        'ksorbs', '9mm_smg', 'RobertKennedyJc', 'LauraLoomer', 'alifarhat79', 
+        'LibertyCappy', 'MAGAPosts', 'akafaceUS', 'Antunes1', 'unlimited_ls', 
+        'ALX', 'lporiginalg', 'Liberacrat',
+        
+        // Row 2 - core accounts
+        'CNSRV_', 'ConservativeOG', 'GreatJoeyJones', 'RaheemKassam', 
+        
+        // Rows 3-5 - other verified community members
         'DolphinMiharu', 'undiavn', 'Giangkaito', 'lkevinw',
-        'LibertyCappy', 'JLH091980', 'TheCharlesDowns', 'Terraphyre',
+        'JLH091980', 'TheCharlesDowns', 'Terraphyre',
         'NopticTO', 'Why69Serious', 'HicksDunca20379', 'gummyscrape',
         'Cristobal_Da_Ra', 'chasedips', 'fenner_parker', 'thejoanmejia',
         'ThePaganProphet', 'digitalducat', 'FarleyM_420', 'ShitcoinProphet',
@@ -246,6 +252,44 @@ async function fetchCommunityData() {
         
         // Hardcoded data for key community members - ONLY confirmed members
         profiles = [
+          // First row - priority accounts
+          {
+            name: "Kevin Sorbo",
+            username: "ksorbs",
+            picture: "https://pbs.twimg.com/profile_images/1726403773184184320/LKD3yWIk_400x400.jpg",
+            followers_count: 587000,
+            description: "Actor, director, producer, author."
+          },
+          {
+            name: "9mmSMG",
+            username: "9mm_smg",
+            picture: "https://pbs.twimg.com/profile_images/1737894550523473920/Z44q4r__400x400.jpg",
+            followers_count: 152000,
+            description: "Midlife crisis nomad just traveling around before the world ends."
+          },
+          {
+            name: "Robert F. Kennedy Jr.",
+            username: "RobertKennedyJc",
+            picture: "https://pbs.twimg.com/profile_images/1698025296398221312/i9uY4RuU_400x400.jpg",
+            followers_count: 245000,
+            description: "#MAHA News/No affiliation to the real RFKJR/Satire"
+          },
+          {
+            name: "Laura Loomer",
+            username: "LauraLoomer",
+            picture: "https://pbs.twimg.com/profile_images/1763607303050702848/7CAcw2xu_400x400.jpg",
+            followers_count: 623000,
+            description: "Investigative Journalist 🇺🇸 Free Spirit 🇺🇸 Founder of LOOMERED."
+          },
+          {
+            name: "Not Jerome Powell",
+            username: "alifarhat79",
+            picture: "https://pbs.twimg.com/profile_images/1624136303553536000/azdvv7RM_400x400.jpg",
+            followers_count: 128000,
+            description: "Not associated with the Federal Reserve. Financial Parody and sarcasm."
+          },
+          
+          // Second row - core accounts
           {
             name: "CNSRV",
             username: "CNSRV_",
@@ -265,15 +309,16 @@ async function fetchCommunityData() {
             username: "GreatJoeyJones",
             picture: "https://pbs.twimg.com/profile_images/1754559548520837120/OZTLfE1X_400x400.jpg",
             followers_count: 320000,
-            description: "Thank you for the privilege of your time. Fox News Contributor & Host. @FoxBusiness @FoxNews @TheFive Retired USMC EOD"
+            description: "Thank you for the privilege of your time. Fox News Contributor & Host."
           },
           {
             name: "Raheem Kassam",
             username: "RaheemKassam",
             picture: "https://pbs.twimg.com/profile_images/1641882393725812738/cNHisq0E_400x400.jpg",
             followers_count: 290000,
-            description: "Editor-in-Chief of @thenationalpulse and host of The National Pulse podcast. Former Editor of Breitbart London. Subscribe at http://raheemkassam.substack.com"
+            description: "Editor-in-Chief of @thenationalpulse and host of The National Pulse podcast."
           },
+          
           // Add the "and more" indicator profile
           {
             name: "...and hundreds more Patriots!",
