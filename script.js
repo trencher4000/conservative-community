@@ -16,9 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function setupVideo() {
     const video = document.getElementById('promo-video');
     
-    // Replace this URL with your actual video URL
-    // Note: For this example, we're using the Dropbox URL from the user query
-    // In a real implementation, you should host the video on your own server or a CDN
+    // Use the community video URL - if this doesn't work, we'll revert to the placeholder
     const videoUrl = "https://www.dropbox.com/scl/fi/ph6e98p8j58li2j3pkjws/CNSRV-2.mp4?rlkey=e9e8wkdnffcuehwmiylf5qxdu&raw=1";
     
     // Set the video source
@@ -121,11 +119,36 @@ function updateProfileGrid(profiles) {
     
     // Use the real profiles from scraper
     if (profiles && profiles.length > 0) {
-        profiles.forEach(profile => {
+        // Sort profiles by follower count (highest first)
+        const sortedProfiles = [...profiles].sort((a, b) => 
+            (b.followers_count || 0) - (a.followers_count || 0)
+        );
+        
+        console.log(`Displaying ${sortedProfiles.length} verified community member profiles`);
+        
+        // Create profile elements for each member
+        sortedProfiles.forEach(profile => {
             const profileImg = document.createElement('div');
             profileImg.className = 'profile-img';
-            profileImg.style.backgroundImage = `url('${profile.picture}')`;
-            profileImg.setAttribute('title', profile.name);
+            
+            // Use the profile picture or a default if missing
+            if (profile.picture) {
+                profileImg.style.backgroundImage = `url('${profile.picture}')`;
+            } else {
+                profileImg.classList.add('no-image');
+            }
+            
+            // Add tooltip with name and username
+            profileImg.setAttribute('title', `${profile.name} (@${profile.username})`);
+            
+            // Optional: make profiles clickable to their X profiles
+            if (profile.username && profile.username !== 'more_patriots') {
+                profileImg.addEventListener('click', () => {
+                    window.open(`https://x.com/${profile.username}`, '_blank');
+                });
+                profileImg.style.cursor = 'pointer';
+            }
+            
             profileGrid.appendChild(profileImg);
         });
     } else {
@@ -186,13 +209,13 @@ function formatNumber(num) {
     return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
-// Copy flag emoji to clipboard
+// Copy coin ID to clipboard
 function setupCopyButton() {
     const copyBtn = document.querySelector('.copy-btn');
-    const flag = document.querySelector('.flag').textContent;
+    const coinId = document.querySelector('.coin-id').textContent;
     
     copyBtn.addEventListener('click', () => {
-        navigator.clipboard.writeText(flag)
+        navigator.clipboard.writeText(coinId)
             .then(() => {
                 const originalText = copyBtn.textContent;
                 copyBtn.textContent = 'Copied!';

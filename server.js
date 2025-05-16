@@ -150,13 +150,42 @@ async function fetchCommunityData() {
       // This is our whitelist - ONLY these users will be shown
       const confirmedCommunityMembers = [
         // Core community accounts - most important ones first
-        'CNSRV_', 'ConservativeOG', 'GreatJoeyJones', 'RaheemKassam',
+        'CNSRV_', 'ConservativeOG', 'GreatJoeyJones', 'RaheemKassam', 
         'DonaldJTrumpJr', 'RealCandaceO', 'mtgreenee', 'TuckerCarlson', 
         'charliekirk11', 'IngrahamAngle', 'RubinReport', 'laurenboebert',
-        'elonmusk', 'Jim_Jordan', 'seanhannity', 'tedcruz'
+        'elonmusk', 'Jim_Jordan', 'seanhannity', 'tedcruz', 'GovRonDeSantis',
+        'benshapiro', 'MattWalshBlog', 'dbongino', 'JackPosobiec', 'catturd2',
+        'Cernovich', 'hughhewitt', 'TomFitton', 'joerogan', 'kayleighmcenany',
+        'SebGorka', 'BuckSexton', 'glennbeck', 'DLoesch', 'mikepompeo',
+        'RandPaul', 'SarahHuckabee', 'jordanbpeterson', 'DineshDSouza',
+        'ScottAdamsSays', 'marklevinshow', 'BillOReilly', 'DiamondandSilk'
       ];
       
-      console.log(`Using a smaller list of ${confirmedCommunityMembers.length} key community members`);
+      console.log(`Using a list of ${confirmedCommunityMembers.length} key community members`);
+      
+      // Verify community membership through API first if possible
+      let verifiedMembers = [];
+      try {
+        // Try to fetch community members directly if endpoint is available
+        console.log(`Attempting to verify community membership via API...`);
+        const communityMembersResponse = await readOnlyClient.v2.communityMembers(CONSERVATIVE_COMMUNITY_ID, {
+          'max_results': 50,
+          'user.fields': ['profile_image_url', 'name', 'username', 'public_metrics', 'description']
+        });
+        
+        if (communityMembersResponse && communityMembersResponse.data) {
+          const apiVerifiedMembers = communityMembersResponse.data.map(user => user.username.toLowerCase());
+          console.log(`API directly verified ${apiVerifiedMembers.length} community members`);
+          verifiedMembers = apiVerifiedMembers;
+        }
+      } catch (membershipError) {
+        console.warn(`Could not directly verify community membership: ${membershipError.message}`);
+        // If we can't verify directly, we'll trust our curated list
+        verifiedMembers = confirmedCommunityMembers.map(username => username.toLowerCase());
+      }
+      
+      // Track successful fetches to avoid duplicates
+      const fetchedUsernames = new Set();
       
       // Fetch profiles in smaller batches of 5 to avoid rate limits
       for (let i = 0; i < confirmedCommunityMembers.length; i += 5) {
@@ -169,13 +198,24 @@ async function fetchCommunityData() {
           });
           
           if (userLookup.data) {
-            const communityProfiles = userLookup.data.map(user => ({
-              name: user.name,
-              picture: user.profile_image_url ? user.profile_image_url.replace('_normal', '_400x400') : null,
-              username: user.username,
-              followers_count: user.public_metrics?.followers_count,
-              description: user.description
-            }));
+            // Only include users that are in our verified list
+            const communityProfiles = userLookup.data
+              .filter(user => {
+                const username = user.username.toLowerCase();
+                return verifiedMembers.includes(username) && !fetchedUsernames.has(username);
+              })
+              .map(user => {
+                // Mark as fetched
+                fetchedUsernames.add(user.username.toLowerCase());
+                
+                return {
+                  name: user.name,
+                  picture: user.profile_image_url ? user.profile_image_url.replace('_normal', '_400x400') : null,
+                  username: user.username,
+                  followers_count: user.public_metrics?.followers_count || 0,
+                  description: user.description
+                };
+              });
             
             profiles = [...profiles, ...communityProfiles];
             console.log(`Added ${communityProfiles.length} verified community member profiles`);
