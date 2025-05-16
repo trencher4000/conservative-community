@@ -1,0 +1,28 @@
+# Node.js
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+.env
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Large files and directories
+*.mp4
+*.zip
+ConservativeOG/
+deploy/
+conservative-og/
+github_ready/
+github_upload/
+
+# Logs
+logs
+*.log
+
+# Distribution / packaging
+dist/
+build/ 
