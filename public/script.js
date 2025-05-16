@@ -175,16 +175,17 @@ function updateStats(stats) {
     const likesEl = document.querySelector('#likes .stat-value');
     const retweetsEl = document.querySelector('#retweets .stat-value');
     
-    if (stats.impressions) {
-        impressionsEl.textContent = formatNumber(stats.impressions);
+    // Make sure we always display a number (0 or actual value)
+    if (impressionsEl) {
+        impressionsEl.textContent = formatNumber(stats.impressions || 0);
     }
     
-    if (stats.likes) {
-        likesEl.textContent = formatNumber(stats.likes);
+    if (likesEl) {
+        likesEl.textContent = formatNumber(stats.likes || 0);
     }
     
-    if (stats.retweets) {
-        retweetsEl.textContent = formatNumber(stats.retweets);
+    if (retweetsEl) {
+        retweetsEl.textContent = formatNumber(stats.retweets || 0);
     }
 }
 
