@@ -38,6 +38,7 @@ const CONSERVATIVE_COMMUNITY_ID = '1922392299163595186';
 
 // Add a new cache duration constant near the top of the file
 const API_CACHE_DURATION = 60 * 60 * 1000; // 1 hour in milliseconds
+const MIN_API_REQUEST_INTERVAL = 60 * 1000; // 1 minute between requests instead of 15 minutes
 let lastApiRequest = 0; // Track when we last made an API request
 
 // Initialize Twitter client if credentials are available
@@ -150,9 +151,9 @@ async function fetchCommunityData() {
     return false;
   }
 
-  // Check if we're within rate limits
+  // Check if we're within rate limits - REDUCED from 15 minutes to 1 minute
   const now = Date.now();
-  if (lastApiRequest > 0 && now - lastApiRequest < 15 * 60 * 1000) { // 15 minute minimum between requests
+  if (lastApiRequest > 0 && now - lastApiRequest < MIN_API_REQUEST_INTERVAL) {
     console.log(`⏱️ API request too soon, last request was ${Math.round((now - lastApiRequest)/1000)} seconds ago. Using existing data.`);
     return false;
   }
@@ -183,7 +184,11 @@ async function fetchCommunityData() {
           console.log(`Community has ${communityMemberCount} members reported by API`);
           break; // Success, exit loop
         } catch (error) {
+          // Enhanced rate limit logging
           if (error.code === 429 || (error.data && error.data.status === 429)) {
+            // Extract rate limit information from headers if available
+            logRateLimitInfo(error, 'community endpoint');
+            
             retries++;
             if (retries >= maxRetries) {
               throw error; // Max retries reached, throw the error
@@ -193,6 +198,7 @@ async function fetchCommunityData() {
             await new Promise(resolve => setTimeout(resolve, waitTime));
             waitTime *= 2; // Exponential backoff
           } else {
+            console.error(`Community endpoint error: ${error.message}`);
             throw error; // Not a rate limit error, throw immediately
           }
         }
@@ -464,6 +470,11 @@ async function fetchCommunityData() {
   } catch (error) {
     console.error('❌ Error fetching community data from Twitter API:', error.message);
     
+    // Log rate limit information
+    if (error.code === 429 || (error.data && error.data.status === 429)) {
+      logRateLimitInfo(error, 'fetchCommunityData');
+    }
+    
     // Make sure we always have profile data available
     if (!communityData.profiles || communityData.profiles.length === 0) {
       console.log('📊 No profiles available, using fallback profile data');
@@ -475,21 +486,30 @@ async function fetchCommunityData() {
       console.log('Rate limit exceeded, checking reset time...');
       
       // Try to get the rate limit reset time from the error
-      const resetTimestamp = error.rateLimit?.reset;
+      const resetTimestamp = error.rateLimit?.reset || 
+                           (error._headers && error._headers['x-rate-limit-reset']) || 
+                           (error.data && error.data.errors && error.data.errors[0].reset_at);
+                           
       if (resetTimestamp) {
-        const resetDate = new Date(resetTimestamp * 1000);
-        const waitTime = resetDate - new Date();
-        console.log(`Rate limit resets at ${resetDate.toISOString()} (in ${Math.round(waitTime/1000/60)} minutes)`);
+        // Convert to timestamp if it's a date string
+        const resetTime = typeof resetTimestamp === 'string' && resetTimestamp.includes('T') 
+          ? new Date(resetTimestamp) 
+          : new Date(resetTimestamp * 1000);
+          
+        const waitTime = resetTime - new Date();
+        console.log(`Rate limit resets at ${resetTime.toISOString()} (in ${Math.round(waitTime/1000/60)} minutes)`);
         
         // Update the next update time in the community data
-        communityData.nextUpdateAvailable = resetDate.toISOString();
+        communityData.nextUpdateAvailable = resetTime.toISOString();
       } else {
-        // If we can't get the reset time, default to 15 minutes
-        communityData.nextUpdateAvailable = new Date(now + 15 * 60 * 1000).toISOString();
+        // If we can't get the reset time, default to a shorter time (5 minutes)
+        communityData.nextUpdateAvailable = new Date(now + 5 * 60 * 1000).toISOString();
+        console.log(`No reset time found, defaulting to 5 minute wait`);
       }
     } else {
       // For non-rate limit errors, set a shorter retry time
-      communityData.nextUpdateAvailable = new Date(now + 5 * 60 * 1000).toISOString();
+      communityData.nextUpdateAvailable = new Date(now + 2 * 60 * 1000).toISOString();
+      console.log(`Non-rate limit error, will retry in 2 minutes`);
     }
     
     return false;
@@ -861,4 +881,48 @@ app.listen(PORT, () => {
   } else {
     console.log('Twitter API client not available, skipping initial data fetch');
   }
-}); 
+});
+
+// Add this new function to extract and log rate limit information from error responses
+function logRateLimitInfo(error, endpoint) {
+  console.log(`🚨 Rate limit hit on ${endpoint}`);
+  
+  try {
+    // Check for headers in the error object
+    const headers = error.rateLimit || error._headers || (error.request && error.request.res && error.request.res.headers);
+    
+    if (headers) {
+      const limit = headers['x-rate-limit-limit'] || 'unknown';
+      const remaining = headers['x-rate-limit-remaining'] || 'unknown';
+      const reset = headers['x-rate-limit-reset'] || 'unknown';
+      
+      console.log(`📊 Rate limit details for ${endpoint}:`);
+      console.log(`  • Limit: ${limit}`);
+      console.log(`  • Remaining: ${remaining}`);
+      console.log(`  • Reset: ${reset ? new Date(reset * 1000).toISOString() : 'unknown'}`);
+      
+      if (reset) {
+        const resetTime = new Date(reset * 1000);
+        const waitTimeSeconds = Math.max(0, Math.ceil((resetTime - new Date()) / 1000));
+        console.log(`  • Wait time: ${waitTimeSeconds} seconds (${Math.ceil(waitTimeSeconds/60)} minutes)`);
+      }
+    } else if (error.data && error.data.errors) {
+      // Handle Twitter API v2 error format
+      const errors = error.data.errors;
+      errors.forEach(err => {
+        console.log(`  • Error: ${err.title || err.message}`);
+        console.log(`  • Detail: ${err.detail || 'No details'}`);
+        
+        // Some errors contain rate limit info in a different format
+        if (err.type === 'https://api.twitter.com/2/problems/resource-exhausted') {
+          console.log(`  • Scope: ${err.scope || 'unknown'}`);
+          console.log(`  • Reset: ${err.reset_at || 'unknown'}`);
+        }
+      });
+    } else {
+      console.log('  • No detailed rate limit information available in error');
+    }
+  } catch (extractError) {
+    console.error(`Error extracting rate limit info: ${extractError.message}`);
+  }
+} 
