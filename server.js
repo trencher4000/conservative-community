@@ -434,6 +434,150 @@ app.get('/api/community-data', (req, res) => {
   res.json(communityData);
 });
 
+// New API endpoint to fetch community posts
+app.get('/api/community-posts', async (req, res) => {
+  console.log('API request received for community posts');
+  
+  if (!twitterClient) {
+    console.log('Twitter API client not available, returning error');
+    return res.status(503).json({
+      success: false,
+      message: 'Twitter API client not available',
+      posts: []
+    });
+  }
+  
+  try {
+    // Get the read-only client
+    const readOnlyClient = twitterClient.readOnly;
+    
+    // Fetch community posts (timeline)
+    const posts = [];
+    
+    try {
+      console.log(`Attempting to fetch posts from community: ${CONSERVATIVE_COMMUNITY_ID}`);
+      
+      // First try to get posts directly from the community timeline
+      const timeline = await readOnlyClient.v2.communityTweets(CONSERVATIVE_COMMUNITY_ID, {
+        max_results: 10,
+        expansions: ['author_id', 'attachments.media_keys'],
+        'tweet.fields': ['created_at', 'public_metrics', 'text'],
+        'user.fields': ['name', 'username', 'profile_image_url'],
+        'media.fields': ['url', 'preview_image_url']
+      });
+      
+      console.log(`Fetched ${timeline?.data?.length || 0} posts from community timeline`);
+      
+      if (timeline?.data?.length > 0 && timeline.includes) {
+        const users = timeline.includes.users || [];
+        const media = timeline.includes.media || [];
+        
+        // Map user and media information to the tweets
+        timeline.data.forEach(tweet => {
+          const author = users.find(u => u.id === tweet.author_id);
+          
+          if (!author) return; // Skip tweets without author info
+          
+          const mediaItems = [];
+          if (tweet.attachments?.media_keys) {
+            tweet.attachments.media_keys.forEach(key => {
+              const mediaItem = media.find(m => m.media_key === key);
+              if (mediaItem) {
+                mediaItems.push(mediaItem.url || mediaItem.preview_image_url);
+              }
+            });
+          }
+          
+          posts.push({
+            id: tweet.id,
+            text: tweet.text,
+            created_at: tweet.created_at,
+            author: {
+              id: author.id,
+              name: author.name,
+              username: author.username,
+              profile_image_url: author.profile_image_url
+            },
+            media: mediaItems,
+            metrics: tweet.public_metrics
+          });
+        });
+      }
+    } catch (timelineError) {
+      console.warn('Error fetching community timeline:', timelineError.message);
+      
+      // If direct community timeline fetch fails, try search as fallback
+      try {
+        console.log('Trying search query as fallback...');
+        const searchResults = await readOnlyClient.v2.search('community:1922392299163595186', {
+          max_results: 10,
+          expansions: ['author_id', 'attachments.media_keys'],
+          'tweet.fields': ['created_at', 'public_metrics', 'text'],
+          'user.fields': ['name', 'username', 'profile_image_url'],
+          'media.fields': ['url', 'preview_image_url']
+        });
+        
+        console.log(`Fetched ${searchResults?.data?.length || 0} posts from search`);
+        
+        if (searchResults?.data?.length > 0 && searchResults.includes) {
+          const users = searchResults.includes.users || [];
+          const media = searchResults.includes.media || [];
+          
+          // Map user and media information to the tweets
+          searchResults.data.forEach(tweet => {
+            const author = users.find(u => u.id === tweet.author_id);
+            
+            if (!author) return; // Skip tweets without author info
+            
+            const mediaItems = [];
+            if (tweet.attachments?.media_keys) {
+              tweet.attachments.media_keys.forEach(key => {
+                const mediaItem = media.find(m => m.media_key === key);
+                if (mediaItem) {
+                  mediaItems.push(mediaItem.url || mediaItem.preview_image_url);
+                }
+              });
+            }
+            
+            posts.push({
+              id: tweet.id,
+              text: tweet.text,
+              created_at: tweet.created_at,
+              author: {
+                id: author.id,
+                name: author.name,
+                username: author.username,
+                profile_image_url: author.profile_image_url
+              },
+              media: mediaItems,
+              metrics: tweet.public_metrics
+            });
+          });
+        }
+      } catch (searchError) {
+        console.warn('Error with search fallback:', searchError.message);
+        // Continue with any posts we might have or empty array
+      }
+    }
+    
+    // Return whatever posts we managed to collect
+    return res.json({
+      success: posts.length > 0,
+      message: posts.length > 0 ? 'Posts fetched successfully' : 'No posts found',
+      posts: posts
+    });
+    
+  } catch (error) {
+    console.error('Error fetching community posts:', error);
+    
+    return res.status(500).json({
+      success: false,
+      message: `Error fetching posts: ${error.message}`,
+      posts: []
+    });
+  }
+});
+
 // Trigger a manual refresh of the data
 app.post('/api/refresh-data', async (req, res) => {
   try {
