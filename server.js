@@ -149,11 +149,22 @@ async function fetchCommunityData() {
       // Create an extensive list of verified community members
       // This is our whitelist - ONLY these users will be shown
       const confirmedCommunityMembers = [
-        // Core community accounts only - verified to be in the community
-        'CNSRV_', 'ConservativeOG', 'GreatJoeyJones', 'RaheemKassam'
+        // Core community accounts
+        'CNSRV_', 'ConservativeOG', 'GreatJoeyJones', 'RaheemKassam',
+        // Verified community members
+        'DolphinMiharu', 'undiavn', 'Giangkaito', 'lkevinw',
+        'LibertyCappy', 'JLH091980', 'TheCharlesDowns', 'Terraphyre',
+        'NopticTO', 'Why69Serious', 'HicksDunca20379', 'gummyscrape',
+        'Cristobal_Da_Ra', 'chasedips', 'fenner_parker', 'thejoanmejia',
+        'ThePaganProphet', 'digitalducat', 'FarleyM_420', 'ShitcoinProphet',
+        'sinclairsips', 'obedjohnson6', 'YipsinMonte', 'MrHonest',
+        'blueeyesblinded', 'LilJitt2424', 'fuggQUU', 'FurlogoX',
+        'dimegirlchar', 'duonghau09', 'PortaPog', 'sickstreet7',
+        'TestnetLord01', 'KekiusMaximus_C', 'jakewlittle', 'xyukicryptx',
+        'web3_amayaaa', 'LlcPascale', 'jaydawgtrades'
       ];
       
-      console.log(`Using a strictly verified list of ${confirmedCommunityMembers.length} confirmed community members`);
+      console.log(`Using a list of ${confirmedCommunityMembers.length} verified community members`);
       
       // Verify community membership through API first if possible
       let verifiedMembers = [];
