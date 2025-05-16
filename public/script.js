@@ -15,23 +15,42 @@ document.addEventListener('DOMContentLoaded', () => {
 // Set up video functionality
 function setupVideo() {
     const video = document.getElementById('promo-video');
+    const videoPlaceholder = document.querySelector('.video-placeholder');
     
-    // Replace this URL with your actual video URL
-    // Note: For this example, we're using the Dropbox URL from the user query
-    // In a real implementation, you should host the video on your own server or a CDN
+    // Hide the placeholder by default
+    videoPlaceholder.style.display = 'none';
+    
+    // Direct Dropbox URL with raw=1 parameter for direct access
     const videoUrl = "https://www.dropbox.com/scl/fi/ph6e98p8j58li2j3pkjws/CNSRV-2.mp4?rlkey=e9e8wkdnffcuehwmiylf5qxdu&raw=1";
     
     // Set the video source
     video.querySelector('source').src = videoUrl;
     
+    // Ensure autoplay, loop, and muted attributes are set
+    video.autoplay = true;
+    video.loop = true;
+    video.muted = true;
+    video.playsInline = true;
+    
     // Load the video
     video.load();
     
+    // Try to play the video immediately
+    video.play().catch(err => {
+        console.error('Video autoplay failed:', err);
+        // Some browsers require user interaction before autoplay works
+    });
+    
     // Handle video loading errors
-    video.addEventListener('error', () => {
-        console.error('Video failed to load');
+    video.addEventListener('error', (e) => {
+        console.error('Video failed to load:', e);
         // Show the placeholder if the video fails to load
-        document.querySelector('.video-placeholder').style.display = 'block';
+        videoPlaceholder.style.display = 'block';
+    });
+    
+    // Log when video starts playing
+    video.addEventListener('playing', () => {
+        console.log('Video is now playing');
     });
 }
 
