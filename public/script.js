@@ -118,8 +118,8 @@ function updateProfileGrid(profiles) {
             return 0;
         });
         
-        // Limit to 50 profiles (5 rows of 10)
-        const displayLimit = 50;
+        // Limit to 49 profiles (make room for the "And More" button as #50)
+        const displayLimit = 49;
         const displayProfiles = sortedProfiles.slice(0, displayLimit);
         
         // Display all available profiles
@@ -164,7 +164,7 @@ function updateProfileGrid(profiles) {
             profileGrid.appendChild(profileImg);
         });
         
-        // Add the "and more" indicator after the 5th row
+        // Add the "and more" indicator as the 50th profile
         const andMoreProfile = document.createElement('div');
         andMoreProfile.className = 'profile-img and-more';
         andMoreProfile.setAttribute('title', 'Join to see all community members!');

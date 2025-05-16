@@ -230,13 +230,13 @@ footer {
 
 @media (max-width: 768px) {
     .profile-grid {
-        grid-template-columns: repeat(8, 1fr);
+        grid-template-columns: repeat(5, 1fr);
     }
 }
 
 @media (max-width: 576px) {
     .profile-grid {
-        grid-template-columns: repeat(6, 1fr);
+        grid-template-columns: repeat(5, 1fr);
     }
     
     .stats-container {
