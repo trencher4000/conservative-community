@@ -278,13 +278,30 @@ function updateProfileGrid(profiles) {
     const profileGrid = document.getElementById('profile-grid');
     profileGrid.innerHTML = ''; // Clear existing profiles
     
-    // Use the real profiles from scraper
+    // Use the real profiles from API
     if (profiles && profiles.length > 0) {
-        profiles.forEach(profile => {
+        // Limit to a reasonable number of profiles for display
+        const displayProfiles = profiles.slice(0, 20); 
+        
+        displayProfiles.forEach(profile => {
             const profileImg = document.createElement('div');
             profileImg.className = 'profile-img';
-            profileImg.style.backgroundImage = `url('${profile.picture}')`;
-            profileImg.setAttribute('title', profile.name);
+            
+            // Handle image loading issues
+            const imgUrl = profile.picture || `https://via.placeholder.com/400?text=${profile.username?.slice(0,1) || 'X'}`;
+            profileImg.style.backgroundImage = `url('${imgUrl}')`;
+            
+            // Add name as title
+            profileImg.setAttribute('title', profile.name || profile.username || 'Conservative Member');
+            
+            // Add a link to their X profile if username is available
+            if (profile.username) {
+                profileImg.addEventListener('click', () => {
+                    window.open(`https://x.com/${profile.username}`, '_blank');
+                });
+                profileImg.style.cursor = 'pointer';
+            }
+            
             profileGrid.appendChild(profileImg);
         });
     } else {
