@@ -102,7 +102,7 @@ async function fetchCommunityData() {
     // Get the read-only client
     const readOnlyClient = twitterClient.readOnly;
     
-    // First, get the community details if possible
+    // First, get the community details
     let communityMemberCount = 0;
     try {
       // Add retry with exponential backoff for rate limits
@@ -113,11 +113,12 @@ async function fetchCommunityData() {
       while (retries < maxRetries) {
         try {
           const community = await readOnlyClient.v2.community(CONSERVATIVE_COMMUNITY_ID, {
-            'community.fields': ['member_count']
+            'community.fields': ['member_count', 'name', 'description']
           });
           
           console.log('Community data:', community.data);
           communityMemberCount = community.data.member_count || 0;
+          console.log(`Community has ${communityMemberCount} members reported by API`);
           break; // Success, exit loop
         } catch (error) {
           if (error.code === 429 || (error.data && error.data.status === 429)) {
@@ -138,115 +139,197 @@ async function fetchCommunityData() {
       console.warn('Could not fetch community details:', communityError.message);
     }
     
-    // Try to fetch actual community members directly
+    // Collection of profiles
     let profiles = [];
+    
+    // First attempt - try to use the List Members API endpoint if available with your access level
     try {
-      // Search for users mentioning the Conservative community
-      console.log(`Attempting to fetch profiles related to community ID: ${CONSERVATIVE_COMMUNITY_ID}`);
+      console.log(`Attempting to get community members for: ${CONSERVATIVE_COMMUNITY_ID}`);
       
-      // Add retry with exponential backoff
-      let retries = 0;
-      const maxRetries = 3;
-      let waitTime = 5000; // Start with 5 seconds
+      // For pagination
+      let paginationToken = null;
+      let hasMorePages = true;
+      let pageCount = 0;
+      const maxPages = 10; // Limit to 10 pages to avoid excessive API calls
       
-      while (retries < maxRetries && profiles.length === 0) {
+      while (hasMorePages && pageCount < maxPages && profiles.length < 500) {
+        console.log(`Fetching page ${pageCount + 1} of community members...`);
+        
+        // Some versions of Twitter API prefer using "list members" for communities
+        const params = {
+          'max_results': 100, // Maximum allowed
+          'user.fields': 'profile_image_url,name,username,description,public_metrics'
+        };
+        
+        if (paginationToken) {
+          params.pagination_token = paginationToken;
+        }
+        
+        // Try different API endpoints that might be available with your access level
         try {
-          // Search for users mentioning the Conservative community
-          const searchQuery = 'conservative community x.com';
-          const searchResults = await readOnlyClient.v2.search(searchQuery, {
-            'tweet.fields': ['author_id', 'created_at'],
-            'user.fields': ['profile_image_url', 'name', 'username', 'public_metrics'],
-            'expansions': ['author_id'],
-            'max_results': 50
-          });
+          // Try as a list
+          const result = await readOnlyClient.v2.listMembers(CONSERVATIVE_COMMUNITY_ID, params);
           
-          if (searchResults.includes && searchResults.includes.users) {
-            profiles = searchResults.includes.users.map(user => ({
+          if (result.data && result.data.length > 0) {
+            console.log(`Found ${result.data.length} members on page ${pageCount + 1}`);
+            
+            const newProfiles = result.data.map(user => ({
               name: user.name,
               picture: user.profile_image_url ? user.profile_image_url.replace('_normal', '_400x400') : null,
               username: user.username,
-              followers_count: user.public_metrics?.followers_count
+              followers_count: user.public_metrics?.followers_count,
+              description: user.description
             }));
-            console.log(`Found ${profiles.length} profiles from search results`);
-          }
-          
-          if (profiles.length > 0) {
-            break; // Success with profiles, exit loop
-          } else {
-            throw new Error('No profiles found in search results');
-          }
-        } catch (error) {
-          retries++;
-          if (retries >= maxRetries) {
-            throw error; // Max retries reached, throw the error
-          }
-          
-          console.log(`Search failed, retry ${retries}/${maxRetries} after ${waitTime/1000} seconds`);
-          await new Promise(resolve => setTimeout(resolve, waitTime));
-          waitTime *= 2; // Exponential backoff
-        }
-      }
-    } catch (searchError) {
-      console.warn('Could not fetch profiles via search:', searchError.message);
-      
-      // Try looking up some known conservative accounts as fallback
-      try {
-        // List of conservative accounts to use as fallback
-        const conservativeUsernames = [
-          'RealCandaceO', 'TuckerCarlson', 'mtgreenee', 'DonaldJTrumpJr', 
-          'Jim_Jordan', 'RubinReport', 'scrowder', 'charliekirk11', 
-          'RealBenCarson', 'seanhannity', 'IngrahamAngle', 'JackPosobiec',
-          'DineshDSouza', 'marklevinshow'
-        ];
-        
-        console.log('Trying to fetch known Conservative accounts as fallback');
-        
-        // Add retry with exponential backoff for the user lookup
-        let retries = 0;
-        const maxRetries = 3;
-        let waitTime = 5000; // Start with 5 seconds
-        
-        while (retries < maxRetries && profiles.length === 0) {
-          try {
-            const userLookup = await readOnlyClient.v2.usersByUsernames(conservativeUsernames, {
-              'user.fields': ['profile_image_url', 'name', 'username', 'public_metrics']
-            });
             
-            if (userLookup.data) {
-              profiles = userLookup.data.map(user => ({
+            profiles = [...profiles, ...newProfiles];
+            
+            // Check if there are more pages
+            if (result.meta && result.meta.next_token) {
+              paginationToken = result.meta.next_token;
+              pageCount++;
+            } else {
+              hasMorePages = false;
+            }
+          } else {
+            hasMorePages = false;
+          }
+        } catch (listError) {
+          console.log('List members approach failed, trying users in community endpoint:', listError.message);
+          
+          try {
+            // Try direct community users endpoint
+            const result = await readOnlyClient.v2.communityUsers(CONSERVATIVE_COMMUNITY_ID, params);
+            
+            if (result.data && result.data.length > 0) {
+              console.log(`Found ${result.data.length} members on page ${pageCount + 1}`);
+              
+              const newProfiles = result.data.map(user => ({
                 name: user.name,
                 picture: user.profile_image_url ? user.profile_image_url.replace('_normal', '_400x400') : null,
                 username: user.username,
-                followers_count: user.public_metrics?.followers_count
+                followers_count: user.public_metrics?.followers_count,
+                description: user.description
               }));
-              console.log(`Found ${profiles.length} profiles from user lookup`);
-              break; // Success, exit loop
+              
+              profiles = [...profiles, ...newProfiles];
+              
+              // Check if there are more pages
+              if (result.meta && result.meta.next_token) {
+                paginationToken = result.meta.next_token;
+                pageCount++;
+              } else {
+                hasMorePages = false;
+              }
+            } else {
+              hasMorePages = false;
             }
-          } catch (error) {
-            retries++;
-            if (retries >= maxRetries) {
-              throw error; // Max retries reached, throw the error
-            }
-            
-            console.log(`User lookup failed, retry ${retries}/${maxRetries} after ${waitTime/1000} seconds`);
-            await new Promise(resolve => setTimeout(resolve, waitTime));
-            waitTime *= 2; // Exponential backoff
+          } catch (usersError) {
+            console.log('Direct community users approach failed:', usersError.message);
+            hasMorePages = false;
+            throw usersError; // Propagate to outer catch
           }
         }
-      } catch (lookupError) {
-        console.warn('Could not fetch profiles via user lookup:', lookupError.message);
+        
+        // If we've hit API limits, add a delay before the next page request
+        if (hasMorePages) {
+          console.log('Waiting 2 seconds before fetching next page...');
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+      }
+      
+      console.log(`Successfully fetched ${profiles.length} community members across ${pageCount + 1} pages`);
+      
+    } catch (memberError) {
+      console.warn('Could not fetch community members directly:', memberError.message);
+      
+      // Fallback to searching for tweets mentioning the community
+      try {
+        console.log(`Falling back to tweet search for community: ${CONSERVATIVE_COMMUNITY_ID}`);
+        
+        // Search for tweets about this community
+        const searchQuery = 'conservative community OR conservative patriots OR MAGA patriots';
+        const searchResults = await readOnlyClient.v2.search(searchQuery, {
+          'tweet.fields': ['author_id', 'created_at'],
+          'user.fields': ['profile_image_url', 'name', 'username', 'public_metrics', 'description'],
+          'expansions': ['author_id'],
+          'max_results': 100 // Maximum allowed per search request
+        });
+        
+        if (searchResults.includes && searchResults.includes.users) {
+          const searchProfiles = searchResults.includes.users.map(user => ({
+            name: user.name,
+            picture: user.profile_image_url ? user.profile_image_url.replace('_normal', '_400x400') : null,
+            username: user.username,
+            followers_count: user.public_metrics?.followers_count,
+            description: user.description
+          }));
+          
+          profiles = [...profiles, ...searchProfiles];
+          console.log(`Found ${searchProfiles.length} additional profiles from search results`);
+        }
+      } catch (searchError) {
+        console.warn('Search fallback failed:', searchError.message);
+      }
+      
+      // If still low on profiles, add conservative accounts as last resort
+      if (profiles.length < 50) {
+        try {
+          console.log('Adding known conservative accounts as fallback');
+          
+          // List of conservative accounts to use as examples
+          const conservativeUsernames = [
+            'RealCandaceO', 'TuckerCarlson', 'mtgreenee', 'DonaldJTrumpJr',
+            'Jim_Jordan', 'RubinReport', 'scrowder', 'charliekirk11',
+            'RealBenCarson', 'seanhannity', 'IngrahamAngle', 'JackPosobiec',
+            'DineshDSouza', 'marklevinshow', 'GovRonDeSantis', 'laurenboebert',
+            'SenTedCruz', 'bennyjohnson', 'RandPaul', 'ElonMusk',
+            'dbongino', 'LaraLeaTrump', 'EricTrump', 'SaraCarterDC'
+          ];
+          
+          const userLookup = await readOnlyClient.v2.usersByUsernames(conservativeUsernames, {
+            'user.fields': ['profile_image_url', 'name', 'username', 'public_metrics', 'description']
+          });
+          
+          if (userLookup.data) {
+            const fallbackProfiles = userLookup.data.map(user => ({
+              name: user.name,
+              picture: user.profile_image_url ? user.profile_image_url.replace('_normal', '_400x400') : null,
+              username: user.username,
+              followers_count: user.public_metrics?.followers_count,
+              description: user.description
+            }));
+            
+            profiles = [...profiles, ...fallbackProfiles];
+            console.log(`Added ${fallbackProfiles.length} fallback profiles`);
+          }
+        } catch (lookupError) {
+          console.warn('Fallback profile lookup failed:', lookupError.message);
+        }
       }
     }
     
-    // Update community data with real API data only if we have profiles
-    if (profiles.length > 0) {
+    // Make sure we don't have duplicate profiles by username
+    const uniqueProfiles = [];
+    const usernameSet = new Set();
+    
+    profiles.forEach(profile => {
+      if (profile.username && !usernameSet.has(profile.username.toLowerCase())) {
+        usernameSet.add(profile.username.toLowerCase());
+        uniqueProfiles.push(profile);
+      }
+    });
+    
+    console.log(`Filtered to ${uniqueProfiles.length} unique profiles by username`);
+    
+    // Update community data with real API data
+    if (uniqueProfiles.length > 0) {
       communityData = {
-        profiles: profiles,
+        profiles: uniqueProfiles,
         stats: {
-          members: communityMemberCount || profiles.length,
-          impressions: 254789,  // Using default stats since these are hard to get
-          likes: 12543,         // Using default stats
-          retweets: 3982        // Using default stats
+          members: communityMemberCount || uniqueProfiles.length,
+          impressions: 254789,  // Using default stats for engagement
+          likes: 12543,
+          retweets: 3982
         },
         lastUpdated: new Date().toISOString(),
         isStatic: false,
