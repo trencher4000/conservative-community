@@ -161,16 +161,19 @@ function updateProfileGrid(profiles) {
     
     // Use the real profiles from scraper
     if (profiles && profiles.length > 0) {
-        // Sort profiles by follower count (highest first)
-        const sortedProfiles = [...profiles].sort((a, b) => 
+        console.log(`Displaying community member profiles`);
+        
+        // For display, keep the first 13 priority accounts in their original order
+        // The accounts in server.js are already in the priority order
+        const priorityProfiles = profiles.slice(0, 13);
+        
+        // Sort remaining profiles by follower count (highest first)
+        const remainingProfiles = profiles.slice(13).sort((a, b) => 
             (b.followers_count || 0) - (a.followers_count || 0)
         );
         
-        console.log(`Displaying ${sortedProfiles.length} verified community member profiles`);
-        
-        // Limit to 50 profiles (5 rows of 10)
-        const displayLimit = 50;
-        const displayProfiles = sortedProfiles.slice(0, displayLimit);
+        // Combine them back: priority accounts first, then sorted by follower count
+        const displayProfiles = [...priorityProfiles, ...remainingProfiles].slice(0, 50);
         
         // Create profile elements for each member
         displayProfiles.forEach((profile, index) => {
