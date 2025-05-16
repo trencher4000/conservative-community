@@ -294,4 +294,20 @@ footer {
     max-width: 300px;
     background-color: #333;
     color: #aaa;
+}
+
+.empty-state-message {
+    width: 100%;
+    text-align: center;
+    padding: 2rem;
+    font-size: 1.2rem;
+    color: #fff;
+    background-color: rgba(0, 0, 0, 0.5);
+    border-radius: 10px;
+    margin: 2rem 0;
+}
+
+.empty-profile {
+    background-color: #333;
+    border: 1px solid #444;
 } 

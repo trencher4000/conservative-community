@@ -65,30 +65,26 @@ app.get('/health', (req, res) => {
 
 // Initial static community data (fallback)
 let communityData = {
-  profiles: generateDefaultProfiles(20),
+  profiles: [],
   stats: {
-    members: 600,
-    impressions: 254789,
-    likes: 12543,
-    retweets: 3982
+    members: 0,
+    impressions: 0,
+    likes: 0,
+    retweets: 0
   },
   lastUpdated: new Date().toISOString(),
-  isStatic: true
+  isStatic: false
 };
 
 // Generate default profile data as fallback
 function generateDefaultProfiles(count) {
-  return Array.from({ length: count }, (_, i) => ({
-    name: `Conservative Member ${i + 1}`,
-    picture: `https://via.placeholder.com/400?text=Member${i+1}`,
-    username: `conservative${i+1}`
-  }));
+  return []; // No longer generating placeholder profiles
 }
 
 // Function to fetch community data from Twitter API
 async function fetchCommunityData() {
   if (!twitterClient) {
-    console.log('Twitter API client not available, using static data');
+    console.log('Twitter API client not available, returning empty data');
     return false;
   }
 
@@ -106,128 +102,90 @@ async function fetchCommunityData() {
     // Get the read-only client
     const readOnlyClient = twitterClient.readOnly;
     
-    // Use a different approach to get profiles
     // First, get the community details if possible
-    let communityMemberCount = 600;
+    let communityMemberCount = 0;
     try {
       const community = await readOnlyClient.v2.community(CONSERVATIVE_COMMUNITY_ID, {
         'community.fields': ['member_count']
       });
       
       console.log('Community data:', community.data);
-      communityMemberCount = community.data.member_count || 600;
+      communityMemberCount = community.data.member_count || 0;
     } catch (communityError) {
-      console.warn('Could not fetch community details, using default count:', communityError.message);
+      console.warn('Could not fetch community details:', communityError.message);
     }
     
-    // Now fetch actual user profiles using search instead of community members
-    // This is more likely to work with standard API access
+    // Try to fetch actual community members directly
     let profiles = [];
     try {
-      // Search for users mentioning the Conservative community
-      const searchQuery = 'conservative community x.com';
-      const searchResults = await readOnlyClient.v2.search(searchQuery, {
-        'tweet.fields': ['author_id'],
-        'user.fields': ['profile_image_url', 'name', 'username'],
-        'expansions': ['author_id'],
-        'max_results': 50
+      // Attempt to directly get community members - this requires appropriate API access
+      console.log(`Attempting to fetch members from community ID: ${CONSERVATIVE_COMMUNITY_ID}`);
+      const memberResults = await readOnlyClient.v2.communityMembers(CONSERVATIVE_COMMUNITY_ID, {
+        'user.fields': ['profile_image_url', 'name', 'username', 'public_metrics'],
+        'max_results': 100 // Maximum allowed per request
       });
       
-      if (searchResults.includes && searchResults.includes.users) {
-        profiles = searchResults.includes.users.map(user => ({
+      if (memberResults.data && memberResults.data.length > 0) {
+        profiles = memberResults.data.map(user => ({
           name: user.name,
-          picture: user.profile_image_url ? user.profile_image_url.replace('_normal', '_400x400') : `https://via.placeholder.com/400?text=${user.username}`,
-          username: user.username
+          picture: user.profile_image_url ? user.profile_image_url.replace('_normal', '_400x400') : null,
+          username: user.username,
+          followers_count: user.public_metrics?.followers_count
         }));
-        console.log(`Found ${profiles.length} profiles from search results`);
+        console.log(`Successfully fetched ${profiles.length} community members`);
+      } else {
+        console.warn('No community members found in direct API response');
       }
-    } catch (searchError) {
-      console.warn('Could not fetch profiles via search, trying timeline:', searchError.message);
+    } catch (membersError) {
+      console.warn('Could not fetch community members directly:', membersError.message);
       
-      // Alternative: Get recent tweets from a relevant account
+      // Now fetch actual user profiles using search instead of community members
+      // This is a fallback if the direct community members endpoint doesn't work
       try {
-        const userTimeline = await readOnlyClient.v2.userTimeline('1488301765111357440', {
+        // Search for users mentioning the Conservative community
+        const searchQuery = 'conservative community x.com';
+        const searchResults = await readOnlyClient.v2.search(searchQuery, {
           'tweet.fields': ['author_id'],
-          'user.fields': ['profile_image_url', 'name', 'username'],
-          'expansions': ['author_id', 'referenced_tweets.id.author_id', 'in_reply_to_user_id', 'entities.mentions.username'],
+          'user.fields': ['profile_image_url', 'name', 'username', 'public_metrics'],
+          'expansions': ['author_id'],
           'max_results': 50
         });
         
-        if (userTimeline.includes && userTimeline.includes.users) {
-          profiles = userTimeline.includes.users.map(user => ({
+        if (searchResults.includes && searchResults.includes.users) {
+          profiles = searchResults.includes.users.map(user => ({
             name: user.name,
-            picture: user.profile_image_url ? user.profile_image_url.replace('_normal', '_400x400') : `https://via.placeholder.com/400?text=${user.username}`,
-            username: user.username
+            picture: user.profile_image_url ? user.profile_image_url.replace('_normal', '_400x400') : null,
+            username: user.username,
+            followers_count: user.public_metrics?.followers_count
           }));
-          console.log(`Found ${profiles.length} profiles from timeline`);
+          console.log(`Found ${profiles.length} profiles from search results`);
         }
-      } catch (timelineError) {
-        console.warn('Could not fetch profiles via timeline:', timelineError.message);
+      } catch (searchError) {
+        console.warn('Could not fetch profiles via search:', searchError.message);
       }
     }
     
-    // If we still don't have profiles, try a final approach with user lookups
-    if (profiles.length === 0) {
-      try {
-        // List of conservative accounts to use as examples
-        const conservativeUsernames = [
-          'RealCandaceO', 'TuckerCarlson', 'mtgreenee', 'DonaldJTrumpJr', 
-          'Jim_Jordan', 'RubinReport', 'scrowder', 'charliekirk11', 
-          'RealBenCarson', 'seanhannity', 'IngrahamAngle', 'PrisonPlanet',
-          'TomFitton', 'JackPosobiec', 'DineshDSouza', 'marklevinshow'
-        ];
-        
-        // Get random subset of these accounts
-        const sampleUsernames = conservativeUsernames.sort(() => 0.5 - Math.random()).slice(0, 10);
-        
-        const userLookup = await readOnlyClient.v2.usersByUsernames(sampleUsernames, {
-          'user.fields': ['profile_image_url', 'name', 'username']
-        });
-        
-        if (userLookup.data) {
-          profiles = userLookup.data.map(user => ({
-            name: user.name,
-            picture: user.profile_image_url ? user.profile_image_url.replace('_normal', '_400x400') : `https://via.placeholder.com/400?text=${user.username}`,
-            username: user.username
-          }));
-          console.log(`Found ${profiles.length} profiles from user lookup`);
-        }
-      } catch (lookupError) {
-        console.warn('Could not fetch profiles via user lookup:', lookupError.message);
-      }
+    // Update community data with real API data only if we have profiles
+    if (profiles.length > 0) {
+      communityData = {
+        profiles: profiles,
+        stats: {
+          members: communityMemberCount,
+          impressions: 0,  // We don't have real impression data
+          likes: 0,        // We don't have real like data
+          retweets: 0      // We don't have real retweet data
+        },
+        lastUpdated: new Date().toISOString(),
+        isStatic: false,
+        nextUpdateAvailable: new Date(now + API_CACHE_DURATION).toISOString()
+      };
+      
+      console.log('Community data fetched successfully');
+      return true;
+    } else {
+      console.warn('No profiles found through any method');
+      return false;
     }
-    
-    // If we STILL don't have profiles, fall back to default ones
-    if (profiles.length === 0) {
-      profiles = generateDefaultProfiles(20);
-      console.log('Using default profiles as all API methods failed');
-    }
-    
-    // For likes, retweets and impressions, we'll use our static values 
-    // since those are hard to get from the API without elevated access
-    const stats = {
-      members: communityMemberCount,
-      impressions: 254789,
-      likes: 12543,
-      retweets: 3982
-    };
-    
-    // Update community data with real API data
-    communityData = {
-      profiles: profiles.length > 0 ? profiles : communityData.profiles,
-      stats: {
-        members: stats.members || communityData.stats.members,
-        impressions: stats.impressions || communityData.stats.impressions,
-        likes: stats.likes || communityData.stats.likes,
-        retweets: stats.retweets || communityData.stats.retweets
-      },
-      lastUpdated: new Date().toISOString(),
-      isStatic: false,
-      nextUpdateAvailable: new Date(now + API_CACHE_DURATION).toISOString()
-    };
-    
-    console.log('Community data fetched successfully');
-    return true;
   } catch (error) {
     console.error('Error fetching community data from Twitter API:', error);
     
@@ -280,7 +238,7 @@ app.post('/api/refresh-data', async (req, res) => {
       return res.json({
         success: false,
         message: `Rate limited. Next update available in ~${waitTimeMinutes} minutes`,
-        isStatic: communityData.isStatic,
+        isStatic: false,
         nextUpdateAvailable: communityData.nextUpdateAvailable
       });
     }
@@ -301,36 +259,19 @@ app.post('/api/refresh-data', async (req, res) => {
         // API request made but failed or rate limited
         return res.json({
           success: false,
-          message: 'Could not refresh with API. Using existing data.',
-          isStatic: communityData.isStatic,
+          message: 'Could not refresh with API. No data available.',
+          isStatic: false,
           nextUpdateAvailable: communityData.nextUpdateAvailable
         });
       }
     }
     
-    // Fallback to static refresh if API fetch fails or Twitter client isn't available
-    console.log('Using static data refresh');
-    
-    // Update timestamp
-    communityData.lastUpdated = new Date().toISOString();
-    
-    // Add a few more profiles to simulate change
-    const newProfiles = generateDefaultProfiles(3);
-    communityData.profiles = [...newProfiles, ...communityData.profiles.slice(0, 17)];
-    
-    // Update stats slightly
-    communityData.stats.impressions += Math.floor(Math.random() * 1000);
-    communityData.stats.likes += Math.floor(Math.random() * 100);
-    communityData.stats.retweets += Math.floor(Math.random() * 50);
-    communityData.isStatic = true;
-    communityData.nextUpdateAvailable = new Date(now + 5 * 60 * 1000).toISOString(); // 5 minute cooldown for static data
-    
-    console.log('Data refreshed with static data');
-    res.json({ 
-      success: true, 
-      message: 'Data refreshed with simulated data',
-      isStatic: true,
-      nextUpdateAvailable: communityData.nextUpdateAvailable
+    // No Twitter client available
+    console.log('Twitter API client not available');
+    return res.json({
+      success: false,
+      message: 'Twitter API client not available. No data available.',
+      isStatic: false
     });
   } catch (error) {
     console.error('Error refreshing data:', error);

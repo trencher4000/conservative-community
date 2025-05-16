@@ -5,93 +5,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Set up copy button functionality
     setupCopyButton();
     
-    // Set up refresh button
-    setupRefreshButton();
-    
     // Load real community data
     loadRealCommunityData();
     
-    // Refresh data periodically (every 5 minutes)
-    setInterval(loadRealCommunityData, 5 * 60 * 1000);
+    // Refresh data periodically (every 15 minutes)
+    setInterval(loadRealCommunityData, 15 * 60 * 1000);
 });
-
-// Set up refresh button functionality
-function setupRefreshButton() {
-    // Create refresh button
-    const refreshButton = document.createElement('button');
-    refreshButton.className = 'refresh-btn';
-    refreshButton.innerHTML = '🔄 Refresh Data';
-    
-    // Create data source indicator
-    const dataSourceIndicator = document.createElement('div');
-    dataSourceIndicator.id = 'data-source';
-    dataSourceIndicator.className = 'data-source static';
-    dataSourceIndicator.innerHTML = 'Using Static Data';
-    
-    // Create next update indicator
-    const nextUpdateIndicator = document.createElement('div');
-    nextUpdateIndicator.id = 'next-update';
-    nextUpdateIndicator.className = 'next-update';
-    nextUpdateIndicator.style.display = 'none';
-    
-    // Add all elements to the page
-    const statsContainer = document.querySelector('.stats-container');
-    statsContainer.insertAdjacentElement('afterend', refreshButton);
-    statsContainer.insertAdjacentElement('afterend', dataSourceIndicator);
-    statsContainer.insertAdjacentElement('afterend', nextUpdateIndicator);
-    
-    // Add click handler
-    refreshButton.addEventListener('click', async () => {
-        try {
-            refreshButton.disabled = true;
-            refreshButton.innerHTML = '⏳ Refreshing...';
-            dataSourceIndicator.innerHTML = 'Refreshing Data...';
-            
-            const apiUrl = getApiUrl();
-            const response = await fetch(`${apiUrl}/api/refresh-data`, {
-                method: 'POST'
-            });
-            
-            if (!response.ok) {
-                throw new Error(`Failed to refresh: ${response.status}`);
-            }
-            
-            const result = await response.json();
-            console.log('Refresh result:', result);
-            
-            // Show success message
-            refreshButton.innerHTML = result.success ? '✅ Refreshed!' : '⚠️ Rate Limited';
-            
-            // Update source indicator
-            if (result.isStatic) {
-                dataSourceIndicator.className = 'data-source static';
-                dataSourceIndicator.innerHTML = 'Using Static Data';
-            } else {
-                dataSourceIndicator.className = 'data-source live';
-                dataSourceIndicator.innerHTML = 'Using Live Data';
-            }
-            
-            // Load the updated data
-            await loadRealCommunityData();
-            
-            // Reset button after 2 seconds
-            setTimeout(() => {
-                refreshButton.disabled = false;
-                refreshButton.innerHTML = '🔄 Refresh Data';
-            }, 2000);
-            
-        } catch (error) {
-            console.error('Error refreshing data:', error);
-            refreshButton.innerHTML = '❌ Failed';
-            
-            // Reset button after 2 seconds
-            setTimeout(() => {
-                refreshButton.disabled = false;
-                refreshButton.innerHTML = '🔄 Refresh Data';
-            }, 2000);
-        }
-    });
-}
 
 // Set up video functionality
 function setupVideo() {
@@ -135,17 +54,14 @@ function setupVideo() {
     });
 }
 
-// Load real community data from the scraper API
+// Load real community data from the API
 async function loadRealCommunityData() {
     try {
         // Show loading indicators
-        showLoadingState();
+        document.getElementById('profile-grid').classList.add('loading');
         
-        // The URL of your scraper API
-        // Change this to your actual API URL when deployed
+        // The URL of your API
         const apiUrl = getApiUrl();
-        
-        console.log(`Fetching community data from: ${apiUrl}`);
         
         // Fetch data from the API
         const response = await fetch(`${apiUrl}/api/community-data`);
@@ -155,86 +71,22 @@ async function loadRealCommunityData() {
         }
         
         const data = await response.json();
-        console.log('Received community data:', data);
         
         // Update UI with the real data
         updateProfileGrid(data.profiles);
         updateStats(data.stats);
         
-        // Update data source indicator
-        const dataSourceIndicator = document.getElementById('data-source');
-        if (dataSourceIndicator) {
-            if (data.isStatic) {
-                dataSourceIndicator.className = 'data-source static';
-                dataSourceIndicator.innerHTML = 'Using Static Data';
-            } else {
-                dataSourceIndicator.className = 'data-source live';
-                dataSourceIndicator.innerHTML = 'Using Live Data';
-            }
-        }
-        
-        // Update next update indicator if available
-        const nextUpdateIndicator = document.getElementById('next-update');
-        if (nextUpdateIndicator && data.nextUpdateAvailable) {
-            const nextUpdate = new Date(data.nextUpdateAvailable);
-            const now = new Date();
-            
-            if (nextUpdate > now) {
-                const timeDiff = nextUpdate - now;
-                const minutes = Math.round(timeDiff / 1000 / 60);
-                
-                if (minutes > 0) {
-                    nextUpdateIndicator.style.display = 'block';
-                    nextUpdateIndicator.innerHTML = `Next update available in ~${minutes} minutes`;
-                    
-                    // Disable refresh button if there's a waiting period
-                    const refreshButton = document.querySelector('.refresh-btn');
-                    if (refreshButton) {
-                        refreshButton.disabled = true;
-                        
-                        // Set a timer to re-enable the button
-                        setTimeout(() => {
-                            refreshButton.disabled = false;
-                            nextUpdateIndicator.style.display = 'none';
-                        }, timeDiff);
-                    }
-                } else {
-                    nextUpdateIndicator.style.display = 'none';
-                }
-            } else {
-                nextUpdateIndicator.style.display = 'none';
-            }
-        } else if (nextUpdateIndicator) {
-            nextUpdateIndicator.style.display = 'none';
-        }
-        
         // Hide loading indicators
-        hideLoadingState();
+        document.getElementById('profile-grid').classList.remove('loading');
         
     } catch (error) {
         console.error('Failed to load community data:', error);
         
         // Hide loading indicators
-        hideLoadingState();
+        document.getElementById('profile-grid').classList.remove('loading');
         
         // Fall back to basic profile grid if API fails
         generateBasicProfileGrid();
-        
-        // Show error message
-        showErrorMessage('Could not load real community data. Using placeholders instead.');
-        
-        // Update data source indicator
-        const dataSourceIndicator = document.getElementById('data-source');
-        if (dataSourceIndicator) {
-            dataSourceIndicator.className = 'data-source static';
-            dataSourceIndicator.innerHTML = 'Using Static Data';
-        }
-        
-        // Hide next update indicator
-        const nextUpdateIndicator = document.getElementById('next-update');
-        if (nextUpdateIndicator) {
-            nextUpdateIndicator.style.display = 'none';
-        }
     }
 }
 
@@ -249,30 +101,6 @@ function getApiUrl() {
     return window.location.origin;
 }
 
-// Show loading indicators
-function showLoadingState() {
-    // Add loading class to profile grid
-    document.getElementById('profile-grid').classList.add('loading');
-    
-    // You could add more loading indicators here
-}
-
-// Hide loading indicators
-function hideLoadingState() {
-    // Remove loading class from profile grid
-    document.getElementById('profile-grid').classList.remove('loading');
-    
-    // Remove any other loading indicators
-}
-
-// Show error message
-function showErrorMessage(message) {
-    console.error(message);
-    
-    // You could add a UI element to show the error message
-    // For now just log to console
-}
-
 // Update the profile grid with real profiles
 function updateProfileGrid(profiles) {
     const profileGrid = document.getElementById('profile-grid');
@@ -280,19 +108,32 @@ function updateProfileGrid(profiles) {
     
     // Use the real profiles from API
     if (profiles && profiles.length > 0) {
-        // Limit to a reasonable number of profiles for display
-        const displayProfiles = profiles.slice(0, 20); 
+        // Sort profiles by follower count if available
+        const sortedProfiles = [...profiles].sort((a, b) => {
+            // If follower count is available, use it
+            if (a.followers_count && b.followers_count) {
+                return b.followers_count - a.followers_count;
+            }
+            // Otherwise, no specific order
+            return 0;
+        });
         
-        displayProfiles.forEach(profile => {
+        // Display all available profiles
+        sortedProfiles.forEach(profile => {
             const profileImg = document.createElement('div');
             profileImg.className = 'profile-img';
             
             // Handle image loading issues
-            const imgUrl = profile.picture || `https://via.placeholder.com/400?text=${profile.username?.slice(0,1) || 'X'}`;
-            profileImg.style.backgroundImage = `url('${imgUrl}')`;
+            const imgUrl = profile.picture || '';
+            if (imgUrl) {
+                profileImg.style.backgroundImage = `url('${imgUrl}')`;
+            } else {
+                // Add a default empty state
+                profileImg.classList.add('empty-profile');
+            }
             
             // Add name as title
-            profileImg.setAttribute('title', profile.name || profile.username || 'Conservative Member');
+            profileImg.setAttribute('title', profile.name || profile.username || 'Community Member');
             
             // Add a link to their X profile if username is available
             if (profile.username) {
@@ -305,8 +146,11 @@ function updateProfileGrid(profiles) {
             profileGrid.appendChild(profileImg);
         });
     } else {
-        // Fallback to basic grid if no profiles
-        generateBasicProfileGrid();
+        // Show empty state message
+        const emptyMessage = document.createElement('div');
+        emptyMessage.className = 'empty-state-message';
+        emptyMessage.textContent = 'No community profiles available. Please set up Twitter API credentials.';
+        profileGrid.appendChild(emptyMessage);
     }
 }
 
@@ -349,12 +193,11 @@ function generateBasicProfileGrid() {
     const profileGrid = document.getElementById('profile-grid');
     profileGrid.innerHTML = ''; // Clear any existing profiles
     
-    const totalProfiles = 80;
-    for (let i = 0; i < totalProfiles; i++) {
-        const profileImg = document.createElement('div');
-        profileImg.className = 'profile-img';
-        profileGrid.appendChild(profileImg);
-    }
+    // Show empty state message
+    const emptyMessage = document.createElement('div');
+    emptyMessage.className = 'empty-state-message';
+    emptyMessage.textContent = 'No community profiles available. Please set up Twitter API credentials.';
+    profileGrid.appendChild(emptyMessage);
 }
 
 // Format numbers with commas for thousands
