@@ -198,24 +198,6 @@ function updateStats(stats) {
             btn.textContent = `Join ${stats.members}+ Patriots`;
         });
     }
-    
-    // Update engagement stats
-    const impressionsEl = document.querySelector('#impressions .stat-value');
-    const likesEl = document.querySelector('#likes .stat-value');
-    const retweetsEl = document.querySelector('#retweets .stat-value');
-    
-    // Make sure we always display a number (0 or actual value)
-    if (impressionsEl) {
-        impressionsEl.textContent = formatNumber(stats.impressions || 0);
-    }
-    
-    if (likesEl) {
-        likesEl.textContent = formatNumber(stats.likes || 0);
-    }
-    
-    if (retweetsEl) {
-        retweetsEl.textContent = formatNumber(stats.retweets || 0);
-    }
 }
 
 // Fallback to basic profile grid if API fails
