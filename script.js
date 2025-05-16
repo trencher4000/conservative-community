@@ -43,10 +43,13 @@ async function loadRealCommunityData() {
         // Change this to your actual API URL when deployed
         const apiUrl = getApiUrl();
         
+        // Add a cache-busting parameter to avoid browser cache
+        const cacheBuster = `?_t=${new Date().getTime()}`;
+        
         console.log(`Fetching community data from: ${apiUrl}`);
         
-        // Fetch data from the API
-        const response = await fetch(`${apiUrl}/api/community-data`);
+        // Fetch data from the API with cache busting
+        const response = await fetch(`${apiUrl}/api/community-data${cacheBuster}`);
         
         if (!response.ok) {
             throw new Error(`API responded with status: ${response.status}`);
@@ -54,6 +57,11 @@ async function loadRealCommunityData() {
         
         const data = await response.json();
         console.log('Received community data:', data);
+        
+        // Preload all images before updating UI
+        if (data.profiles && data.profiles.length > 0) {
+            await preloadImages(data.profiles);
+        }
         
         // Update UI with the real data
         updateProfileGrid(data.profiles);
@@ -74,6 +82,40 @@ async function loadRealCommunityData() {
         // Show error message
         showErrorMessage('Could not load real community data. Using placeholders instead.');
     }
+}
+
+// Preload images to ensure they're in browser cache
+async function preloadImages(profiles) {
+    // Create an array of image loading promises
+    const imagePromises = profiles.map(profile => {
+        return new Promise((resolve) => {
+            if (profile.picture) {
+                const img = new Image();
+                
+                // Always resolve (even on error) so we don't block rendering
+                img.onload = () => resolve(true);
+                img.onerror = () => {
+                    // Try fallback if available
+                    if (profile.fallbackPicture) {
+                        const fallbackImg = new Image();
+                        fallbackImg.onload = () => resolve(true);
+                        fallbackImg.onerror = () => resolve(false);
+                        fallbackImg.src = profile.fallbackPicture;
+                    } else {
+                        resolve(false);
+                    }
+                };
+                
+                img.src = profile.picture;
+            } else {
+                resolve(false);
+            }
+        });
+    });
+    
+    // Wait for all images to finish loading (or failing)
+    await Promise.all(imagePromises);
+    console.log('Preloaded all profile images');
 }
 
 // Get the API URL based on the environment
@@ -137,8 +179,39 @@ function updateProfileGrid(profiles) {
             
             // Use the profile picture or a default if missing
             if (profile.picture) {
+                console.log(`Loading image for ${profile.username}: ${profile.picture}`);
+                
+                // Create an actual image element to test loading
+                const testImg = new Image();
+                testImg.onload = function() {
+                    console.log(`Successfully loaded image for ${profile.username}`);
+                    profileImg.style.backgroundImage = `url('${profile.picture}')`;
+                };
+                testImg.onerror = function() {
+                    console.error(`Failed to load image for ${profile.username}: ${profile.picture}`);
+                    // Try fallback image if available
+                    if (profile.fallbackPicture) {
+                        console.log(`Trying fallback image for ${profile.username}: ${profile.fallbackPicture}`);
+                        const fallbackImg = new Image();
+                        fallbackImg.onload = function() {
+                            console.log(`Successfully loaded fallback image for ${profile.username}`);
+                            profileImg.style.backgroundImage = `url('${profile.fallbackPicture}')`;
+                        };
+                        fallbackImg.onerror = function() {
+                            console.error(`Failed to load fallback image for ${profile.username}`);
+                            profileImg.classList.add('no-image');
+                        };
+                        fallbackImg.src = profile.fallbackPicture;
+                    } else {
+                        profileImg.classList.add('no-image');
+                    }
+                };
+                testImg.src = profile.picture;
+                
+                // Initially set to the main image (will be replaced if it fails)
                 profileImg.style.backgroundImage = `url('${profile.picture}')`;
             } else {
+                console.warn(`No image URL for ${profile.username}`);
                 profileImg.classList.add('no-image');
             }
             

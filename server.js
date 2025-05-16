@@ -81,6 +81,27 @@ function generateDefaultProfiles(count) {
   return []; // No longer generating placeholder profiles
 }
 
+// Add a function to generate a random avatar fallback URL
+function getDefaultAvatarUrl(username) {
+  // Create a deterministic number from the username
+  let hash = 0;
+  for (let i = 0; i < username.length; i++) {
+    hash = username.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  
+  // Select from a set of reliable avatar URLs based on the hash
+  const avatarOptions = [
+    'https://i.imgur.com/q7vFAVm.png', // Default blue avatar
+    'https://i.imgur.com/JnhnxJJ.png', // Patriotic themed
+    'https://i.imgur.com/h5QR58N.png', // Conservative logo
+    'https://i.imgur.com/fXDP1pA.png', // American flag
+    'https://i.imgur.com/VEwEpKY.png'  // Red background
+  ];
+  
+  const index = Math.abs(hash) % avatarOptions.length;
+  return avatarOptions[index];
+}
+
 // Function to fetch community data from Twitter API
 async function fetchCommunityData() {
   console.log('Using hardcoded community data instead of API');
@@ -94,13 +115,15 @@ async function fetchCommunityData() {
         name: "Kevin Sorbo",
         username: "ksorbs",
         picture: "https://pbs.twimg.com/profile_images/1726403773184184320/LKD3yWIk_400x400.jpg",
+        fallbackPicture: "https://i.imgur.com/bLlq6CJ.jpg",
         followers_count: 587000,
         description: "Actor, director, producer, author."
       },
       {
         name: "9mmSMG",
         username: "9mm_smg",
-        picture: "https://pbs.twimg.com/profile_images/1737894550523473920/Z44q4r__400x400.jpg",
+        picture: "https://media.x.com/1737894550523473920/Z44q4r__400x400.jpg",
+        fallbackPicture: "https://i.imgur.com/q7vFAVm.png",
         followers_count: 152000,
         description: "Midlife crisis nomad just traveling around before the world ends."
       },
@@ -108,6 +131,7 @@ async function fetchCommunityData() {
         name: "Robert F. Kennedy Jr.",
         username: "RobertKennedyJc",
         picture: "https://pbs.twimg.com/profile_images/1698025296398221312/i9uY4RuU_400x400.jpg",
+        fallbackPicture: "https://i.imgur.com/JnhnxJJ.png",
         followers_count: 245000,
         description: "#MAHA News/No affiliation to the real RFKJR/Satire"
       },
@@ -115,6 +139,7 @@ async function fetchCommunityData() {
         name: "Laura Loomer",
         username: "LauraLoomer",
         picture: "https://pbs.twimg.com/profile_images/1763607303050702848/7CAcw2xu_400x400.jpg",
+        fallbackPicture: "https://i.imgur.com/h5QR58N.png",
         followers_count: 623000,
         description: "Investigative Journalist 🇺🇸 Free Spirit 🇺🇸 Founder of LOOMERED."
       },
@@ -122,6 +147,7 @@ async function fetchCommunityData() {
         name: "Not Jerome Powell",
         username: "alifarhat79",
         picture: "https://pbs.twimg.com/profile_images/1624136303553536000/azdvv7RM_400x400.jpg",
+        fallbackPicture: "https://i.imgur.com/fXDP1pA.png",
         followers_count: 128000,
         description: "Not associated with the Federal Reserve. Financial Parody and sarcasm."
       },
@@ -129,6 +155,7 @@ async function fetchCommunityData() {
         name: "Liberty Cappy",
         username: "LibertyCappy",
         picture: "https://pbs.twimg.com/profile_images/1733590329378877726/0T_-Oy9e_400x400.jpg",
+        fallbackPicture: "https://i.imgur.com/VEwEpKY.png",
         followers_count: 95000,
         description: "Declaration of Memes. Conservative meme creator."
       },
@@ -136,6 +163,7 @@ async function fetchCommunityData() {
         name: "MAGA Posts",
         username: "MAGAPosts",
         picture: "https://pbs.twimg.com/profile_images/1684599204132548609/onFjF9C7_400x400.jpg",
+        fallbackPicture: "https://i.imgur.com/q7vFAVm.png",
         followers_count: 72000,
         description: "Supporting the MAGA movement."
       },
@@ -143,6 +171,7 @@ async function fetchCommunityData() {
         name: "AKA Face",
         username: "akafaceUS",
         picture: "https://pbs.twimg.com/profile_images/1718315538728312832/1TkPwImo_400x400.jpg",
+        fallbackPicture: "https://i.imgur.com/JnhnxJJ.png",
         followers_count: 63000,
         description: "America First Patriot."
       },
@@ -150,6 +179,7 @@ async function fetchCommunityData() {
         name: "Antunes",
         username: "Antunes1",
         picture: "https://pbs.twimg.com/profile_images/1689666522700627971/yf4DrRnc_400x400.jpg",
+        fallbackPicture: "https://i.imgur.com/h5QR58N.png",
         followers_count: 48000,
         description: "Conservative voice. Proud American."
       },
@@ -157,6 +187,7 @@ async function fetchCommunityData() {
         name: "Unlimited",
         username: "unlimited_ls",
         picture: "https://pbs.twimg.com/profile_images/1619731905317724162/sRJQEJrK_400x400.jpg",
+        fallbackPicture: "https://i.imgur.com/fXDP1pA.png",
         followers_count: 52000,
         description: "America First Conservative."
       },
@@ -164,6 +195,7 @@ async function fetchCommunityData() {
         name: "ALX",
         username: "ALX",
         picture: "https://pbs.twimg.com/profile_images/1713949293223104512/E9lbMAG-_400x400.jpg",
+        fallbackPicture: "https://i.imgur.com/VEwEpKY.png",
         followers_count: 923000,
         description: "Trump 2024. America First."
       },
@@ -171,6 +203,7 @@ async function fetchCommunityData() {
         name: "LP",
         username: "lporiginalg",
         picture: "https://pbs.twimg.com/profile_images/1588232170262278144/kPAFp1Mb_400x400.jpg",
+        fallbackPicture: "https://i.imgur.com/q7vFAVm.png",
         followers_count: 212000,
         description: "Independent thought. Freedom lover."
       },
@@ -178,6 +211,7 @@ async function fetchCommunityData() {
         name: "Liberacrat",
         username: "Liberacrat",
         picture: "https://pbs.twimg.com/profile_images/1683575246796333058/SHyYZGmR_400x400.jpg",
+        fallbackPicture: "https://i.imgur.com/JnhnxJJ.png",
         followers_count: 42000,
         description: "Liberacrat Media. Conservative values."
       },
@@ -187,6 +221,7 @@ async function fetchCommunityData() {
         name: "CNSRV",
         username: "CNSRV_",
         picture: "https://pbs.twimg.com/profile_images/1707797390380593152/RQmfJWb2_400x400.jpg",
+        fallbackPicture: "https://i.imgur.com/h5QR58N.png",
         followers_count: 32000,
         description: "Building the largest community of America-First Patriots on X."
       },
@@ -194,6 +229,7 @@ async function fetchCommunityData() {
         name: "Conservative OG",
         username: "ConservativeOG",
         picture: "https://pbs.twimg.com/profile_images/1733549004635267072/0Nx-0JbH_400x400.jpg",
+        fallbackPicture: "https://i.imgur.com/fXDP1pA.png",
         followers_count: 20000,
         description: "Official account of the Conservative community"
       },
@@ -201,6 +237,7 @@ async function fetchCommunityData() {
         name: "Great Joey Jones",
         username: "GreatJoeyJones",
         picture: "https://pbs.twimg.com/profile_images/1754559548520837120/OZTLfE1X_400x400.jpg",
+        fallbackPicture: "https://i.imgur.com/VEwEpKY.png",
         followers_count: 320000,
         description: "Thank you for the privilege of your time. Fox News Contributor & Host."
       },
@@ -208,6 +245,7 @@ async function fetchCommunityData() {
         name: "Raheem Kassam",
         username: "RaheemKassam",
         picture: "https://pbs.twimg.com/profile_images/1641882393725812738/cNHisq0E_400x400.jpg",
+        fallbackPicture: "https://i.imgur.com/q7vFAVm.png",
         followers_count: 290000,
         description: "Editor-in-Chief of @thenationalpulse and host of The National Pulse podcast."
       },
@@ -217,6 +255,7 @@ async function fetchCommunityData() {
         name: "Dolphin Miharu",
         username: "DolphinMiharu",
         picture: "https://pbs.twimg.com/profile_images/1716158536659853312/gPFwtXh8_400x400.jpg",
+        fallbackPicture: "https://i.imgur.com/JnhnxJJ.png",
         followers_count: 18000,
         description: "Conservative community member."
       },
@@ -224,6 +263,7 @@ async function fetchCommunityData() {
         name: "TrB1620",
         username: "undiavn",
         picture: "https://pbs.twimg.com/profile_images/1713949293223104512/E9lbMAG-_400x400.jpg",
+        fallbackPicture: "https://i.imgur.com/h5QR58N.png",
         followers_count: 21000,
         description: "America First. Conservative values."
       },
@@ -231,6 +271,7 @@ async function fetchCommunityData() {
         name: "Giangkaito",
         username: "Giangkaito",
         picture: "https://pbs.twimg.com/profile_images/1702776361015648256/j6PyxbeX_400x400.jpg",
+        fallbackPicture: "https://i.imgur.com/fXDP1pA.png",
         followers_count: 17000,
         description: "Web3 enthusiast. Conservative community."
       },
@@ -238,6 +279,7 @@ async function fetchCommunityData() {
         name: "Kevin",
         username: "lkevinw",
         picture: "https://pbs.twimg.com/profile_images/1738333088599375872/rKL1amSB_400x400.jpg",
+        fallbackPicture: "https://i.imgur.com/VEwEpKY.png",
         followers_count: 12000,
         description: "Conservative voice. America First."
       },
@@ -245,6 +287,7 @@ async function fetchCommunityData() {
         name: "JenniLeighLou",
         username: "JLH091980",
         picture: "https://pbs.twimg.com/profile_images/1674116512273965056/MoH2QAVe_400x400.jpg",
+        fallbackPicture: "https://i.imgur.com/q7vFAVm.png",
         followers_count: 8500,
         description: "Conservative community member. Proud American."
       },
@@ -252,6 +295,7 @@ async function fetchCommunityData() {
         name: "Charles R Downs",
         username: "TheCharlesDowns",
         picture: "https://pbs.twimg.com/profile_images/1704552443877257216/dRIkLM0E_400x400.jpg",
+        fallbackPicture: "https://i.imgur.com/JnhnxJJ.png",
         followers_count: 9800,
         description: "Conservative voice. America First patriot."
       },
@@ -259,6 +303,7 @@ async function fetchCommunityData() {
         name: "Terraphyre",
         username: "Terraphyre",
         picture: "https://pbs.twimg.com/profile_images/1658929915366998018/5QgD7tDy_400x400.jpg",
+        fallbackPicture: "https://i.imgur.com/h5QR58N.png",
         followers_count: 7500,
         description: "Conservative community member."
       },
@@ -266,6 +311,7 @@ async function fetchCommunityData() {
         name: "Tenekai",
         username: "NopticTO",
         picture: "https://pbs.twimg.com/profile_images/1676323523775229953/cDLYWTxJ_400x400.jpg",
+        fallbackPicture: "https://i.imgur.com/fXDP1pA.png",
         followers_count: 6200,
         description: "Conservative voice in the community."
       },
@@ -273,6 +319,7 @@ async function fetchCommunityData() {
         name: "Why So Serious",
         username: "Why69Serious",
         picture: "https://pbs.twimg.com/profile_images/1606364047221739523/hxS7-H8r_400x400.jpg",
+        fallbackPicture: "https://i.imgur.com/VEwEpKY.png",
         followers_count: 8900,
         description: "Conservative meme creator. Freedom lover."
       },
@@ -280,6 +327,7 @@ async function fetchCommunityData() {
         name: "Duncan Hicks",
         username: "HicksDunca20379",
         picture: "https://pbs.twimg.com/profile_images/1654234398160982016/h9fJ_7Ry_400x400.jpg",
+        fallbackPicture: "https://i.imgur.com/q7vFAVm.png",
         followers_count: 4300,
         description: "Conservative community member."
       }
