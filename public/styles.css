@@ -23,6 +23,9 @@ body {
 
 header {
     margin-bottom: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 h1 {
@@ -41,7 +44,9 @@ h1 {
     font-weight: 500;
     border-bottom: 1px solid rgba(255, 59, 48, 0.3);
     padding-bottom: 8px;
-    display: inline-block;
+    display: block;
+    width: 100%;
+    text-align: center;
 }
 
 .join-btn {
