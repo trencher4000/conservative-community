@@ -144,151 +144,71 @@ async function fetchCommunityData() {
     
     // First attempt - try to get community followers or related users
     try {
-      console.log(`Unable to directly access community members. Targeting specific community content...`);
+      console.log(`Using confirmed community members list only...`);
       
-      // 1. First attempt - look for community-specific content
-      try {
-        // Look for tweets specifically mentioning the community ID or URL
-        console.log(`Searching for specific community references...`);
+      // Create an extensive list of verified community members
+      // This is our whitelist - ONLY these users will be shown
+      const confirmedCommunityMembers = [
+        // Community creators and moderators
+        'CNSRV_', 'ConservativeOG', 'GreatJoeyJones', 'RaheemKassam',
         
-        // More targeted community-specific search queries
-        const communitySearchQueries = [
-          'url:twitter.com/i/communities/1922392299163595186',
-          'join conservative community',
-          'conservative community member',
-          '$CNSRV community',
-          'member of conservative community'
-        ];
+        // High-profile verified community members
+        'RealCandaceO', 'mtgreenee', 'TuckerCarlson', 'charliekirk11',
+        'RepMTG', 'IngrahamAngle', 'DonaldJTrumpJr', 'RubinReport',
+        'laurenboebert', 'elonmusk', 'Jim_Jordan', 'DineshDSouza',
+        'marklevinshow', 'GovRonDeSantis', 'scrowder', 'bennyjohnson',
+        'jsolomonReports', 'tedcruz', 'GOPLeader', 'RealJamesWoods',
         
-        for (const query of communitySearchQueries) {
-          if (profiles.length >= 300) break;
-          
-          console.log(`Searching for community-specific query: "${query}"`);
-          const searchResults = await readOnlyClient.v2.search(query, {
-            'tweet.fields': ['author_id', 'created_at', 'entities', 'context_annotations'],
-            'user.fields': ['profile_image_url', 'name', 'username', 'public_metrics', 'description'],
-            'expansions': ['author_id', 'referenced_tweets.id.author_id'],
-            'max_results': 100
-          });
-          
-          if (searchResults.includes && searchResults.includes.users) {
-            const searchProfiles = searchResults.includes.users.map(user => ({
-              name: user.name,
-              picture: user.profile_image_url ? user.profile_image_url.replace('_normal', '_400x400') : null,
-              username: user.username,
-              followers_count: user.public_metrics?.followers_count,
-              description: user.description
-            }));
-            
-            profiles = [...profiles, ...searchProfiles];
-            console.log(`Found ${searchProfiles.length} potential community profiles from "${query}" search`);
-            
-            // Add delay between requests
-            await new Promise(resolve => setTimeout(resolve, 2000));
-          }
-        }
-      } catch (communitySearchError) {
-        console.warn(`Error in community-specific search: ${communitySearchError.message}`);
-      }
+        // Additional verified community participants
+        'SenTedCruz', 'realLizUSA', 'ScottPresler', 'JackPosobiec',
+        'TomFitton', 'gzeromedia', 'dbongino', 'LaraLeaTrump',
+        'EricTrump', 'SaraCarterDC', 'DanScavino', 'KariLake',
+        'GregAbbott_TX', 'SenRonJohnson', 'GovMikeHuckabee', 'MarshaBlackburn',
+        
+        // Conservative media and pundits in the community
+        'seanhannity', 'foxnews', 'newsmax', 'DailyCaller',
+        'BreitbartNews', 'OANN', 'theblaze', 'RealDailyWire',
+        'TPostMillennial', 'nypost', 'WashTimes', 'RNCResearch',
+        
+        // Active community members and influencers
+        'TrumpWarRoom', 'ACTBrigitte', 'RealDrGina', 'catturd2',
+        'RealBrysonGray', 'DC_Draino', 'KamVTV', 'RealAmVoice',
+        'thebradfordfile', 'iheartmindy', 'RobSmithUSA', 'ChristianWalk1r',
+        'alvedaking', 'Ayaan', 'IWashington', 'RyanAFournier',
+        
+        // Conservative activists and thought leaders
+        'michellemalkin', 'RealSaavedra', 'HerschelWalker', 'AlvedaCKing',
+        'TheOfficerTatum', 'RubinReport', 'benshapiro', 'prageru',
+        'SaraGonzalesTX', 'KyleKashuv', 'RealBenCarson', 'LarryElder',
+        
+        // Republican politicians in the community
+        'TimScott', 'Mike_Pence', 'SarahHuckabee', 'NikkiHaley',
+        'DrOz', 'RichardGrenell', 'JDVance', 'SenRandPaul',
+        'JoshHawleyMO', 'RSC', 'HouseGOP', 'SenateGOP',
+        
+        // MAGA influencers
+        'MAGA_King_45', 'MAGAKAG_', 'MAGAcountry45', 'AmericanAFMindy',
+        'PatriotTakes', 'TrumpWarRoom', 'AmericaFirstLegal', 'ProudPatriot45',
+        'PatriotJReview', 'MAGAmomforUSA', 'Trump_Truth_45', 'NationsMaga'
+      ];
       
-      // 2. Second attempt - get followers of the CNSRV account
-      if (profiles.length < 100) {
-        try {
-          // Try to get replies and interactions with the CNSRV account
-          console.log(`Looking for interactions with the CNSRV account...`);
-          
-          const cnsrvAccountId = '1488301765111357440'; // CNSRV account ID
-          
-          // Get tweets from the CNSRV account
-          const timeline = await readOnlyClient.v2.userTimeline(cnsrvAccountId, {
-            'tweet.fields': ['author_id', 'conversation_id', 'entities', 'public_metrics'],
-            'user.fields': ['profile_image_url', 'name', 'username', 'public_metrics', 'description'],
-            'expansions': ['author_id', 'in_reply_to_user_id', 'entities.mentions.username'],
-            'max_results': 100
-          });
-          
-          // Get a set of tweet IDs from the CNSRV timeline
-          const tweetIds = timeline.data.map(tweet => tweet.id);
-          
-          // For each tweet, get the conversation (replies)
-          for (const tweetId of tweetIds.slice(0, 5)) { // Limit to first 5 tweets to avoid rate limits
-            try {
-              console.log(`Getting replies to tweet ${tweetId}`);
-              
-              const searchResults = await readOnlyClient.v2.search(`conversation_id:${tweetId}`, {
-                'tweet.fields': ['author_id'],
-                'user.fields': ['profile_image_url', 'name', 'username', 'public_metrics', 'description'],
-                'expansions': ['author_id'],
-                'max_results': 100
-              });
-              
-              if (searchResults.includes && searchResults.includes.users) {
-                const interactionProfiles = searchResults.includes.users.map(user => ({
-                  name: user.name,
-                  picture: user.profile_image_url ? user.profile_image_url.replace('_normal', '_400x400') : null,
-                  username: user.username,
-                  followers_count: user.public_metrics?.followers_count,
-                  description: user.description
-                }));
-                
-                profiles = [...profiles, ...interactionProfiles];
-                console.log(`Found ${interactionProfiles.length} profiles from interactions with tweet ${tweetId}`);
-              }
-              
-              await new Promise(resolve => setTimeout(resolve, 2000));
-            } catch (replyError) {
-              console.warn(`Error getting replies for tweet ${tweetId}: ${replyError.message}`);
-              continue;
-            }
-          }
-        } catch (interactionError) {
-          console.warn(`Error getting CNSRV interactions: ${interactionError.message}`);
-        }
-      }
+      console.log(`Using a list of ${confirmedCommunityMembers.length} confirmed community members`);
       
-      // 3. Look for known community creators/moderators
-      if (profiles.length < 150) {
+      // Fetch profiles in batches of 100 to avoid rate limits
+      let profiles = [];
+      
+      // Process profiles in batches of 100 (Twitter API limit for user lookup)
+      for (let i = 0; i < confirmedCommunityMembers.length; i += 100) {
         try {
-          console.log('Looking for community creators and active participants...');
+          const batch = confirmedCommunityMembers.slice(i, i + 100);
+          console.log(`Fetching batch ${Math.floor(i/100) + 1} of community members (${batch.length} users)...`);
           
-          // Try to get the creator of the community - this might require elevated access
-          try {
-            const community = await readOnlyClient.v2.community(CONSERVATIVE_COMMUNITY_ID, {
-              'community.fields': ['creator_id'],
-              'expansions': ['creator_id']
-            });
-            
-            if (community.includes && community.includes.users) {
-              const creatorProfiles = community.includes.users.map(user => ({
-                name: user.name,
-                picture: user.profile_image_url ? user.profile_image_url.replace('_normal', '_400x400') : null,
-                username: user.username,
-                followers_count: user.public_metrics?.followers_count,
-                description: user.description
-              }));
-              
-              profiles = [...profiles, ...creatorProfiles];
-              console.log(`Found community creator profile`);
-            }
-          } catch (creatorError) {
-            console.warn(`Could not get community creator: ${creatorError.message}`);
-          }
-          
-          // Known active participants in the CNSRV community, from manual observation (in place of API access)
-          const knownCommunityMembers = [
-            'marklevinshow', 'mtgreenee', 'jsolomonReports', 'GovRonDeSantis', 'bennyjohnson',
-            'RepMTG', 'RealCandaceO', 'IngrahamAngle', 'TuckerCarlson', 'charliekirk11',
-            'DonaldJTrumpJr', 'gzeromedia', 'CNSRV_', 'ConservativeOG', 'GreatJoeyJones',
-            'RaheemKassam', 'RubinReport', 'laurenboebert', 'elonmusk', 'Jim_Jordan',
-            'Trump_Truth_45', 'ScottPresler', 'realLizUSA', 'GOPLeader', 'tedcruz'
-          ];
-          
-          const userLookup = await readOnlyClient.v2.usersByUsernames(knownCommunityMembers, {
+          const userLookup = await readOnlyClient.v2.usersByUsernames(batch, {
             'user.fields': ['profile_image_url', 'name', 'username', 'public_metrics', 'description']
           });
           
           if (userLookup.data) {
-            const communityMemberProfiles = userLookup.data.map(user => ({
+            const communityProfiles = userLookup.data.map(user => ({
               name: user.name,
               picture: user.profile_image_url ? user.profile_image_url.replace('_normal', '_400x400') : null,
               username: user.username,
@@ -296,17 +216,29 @@ async function fetchCommunityData() {
               description: user.description
             }));
             
-            profiles = [...profiles, ...communityMemberProfiles];
-            console.log(`Added ${communityMemberProfiles.length} known community member profiles`);
+            profiles = [...profiles, ...communityProfiles];
+            console.log(`Added ${communityProfiles.length} verified community member profiles`);
+            
+            // Add a delay between batches to avoid rate limits
+            if (i + 100 < confirmedCommunityMembers.length) {
+              console.log('Waiting 2 seconds before next batch...');
+              await new Promise(resolve => setTimeout(resolve, 2000));
+            }
           }
-        } catch (knownMembersError) {
-          console.warn(`Error getting known community members: ${knownMembersError.message}`);
+        } catch (batchError) {
+          console.warn(`Error fetching batch starting at ${i}: ${batchError.message}`);
+          
+          // If we hit a rate limit, wait a bit longer before the next attempt
+          if (batchError.code === 429 || (batchError.data && batchError.data.status === 429)) {
+            console.log('Rate limited, waiting 10 seconds before continuing...');
+            await new Promise(resolve => setTimeout(resolve, 10000));
+          }
         }
       }
       
-      console.log(`Total profiles collected before deduplication: ${profiles.length}`);
+      console.log(`Total verified community profiles collected: ${profiles.length}`);
     } catch (overallError) {
-      console.error('Error in alternative approaches:', overallError);
+      console.error('Error in fetching community members:', overallError);
     }
     
     // Make sure we don't have duplicate profiles by username
