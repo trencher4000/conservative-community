@@ -8,86 +8,114 @@ document.addEventListener('DOMContentLoaded', () => {
     // Load real community data
     loadRealCommunityData();
     
-    // Refresh data periodically (every 15 minutes)
-    setInterval(loadRealCommunityData, 15 * 60 * 1000);
+    // Refresh data periodically (every 5 minutes)
+    setInterval(loadRealCommunityData, 5 * 60 * 1000);
 });
 
 // Set up video functionality
 function setupVideo() {
     const video = document.getElementById('promo-video');
-    const videoPlaceholder = document.querySelector('.video-placeholder');
     
-    // Hide the placeholder by default
-    videoPlaceholder.style.display = 'none';
-    
-    // Direct Dropbox URL with raw=1 parameter for direct access
+    // Use the community video URL - if this doesn't work, we'll revert to the placeholder
     const videoUrl = "https://www.dropbox.com/scl/fi/ph6e98p8j58li2j3pkjws/CNSRV-2.mp4?rlkey=e9e8wkdnffcuehwmiylf5qxdu&raw=1";
     
     // Set the video source
     video.querySelector('source').src = videoUrl;
     
-    // Ensure autoplay, loop, and muted attributes are set
-    video.autoplay = true;
-    video.loop = true;
-    video.muted = true;
-    video.playsInline = true;
-    
     // Load the video
     video.load();
     
-    // Try to play the video immediately
-    video.play().catch(err => {
-        console.error('Video autoplay failed:', err);
-        // Some browsers require user interaction before autoplay works
-    });
-    
     // Handle video loading errors
-    video.addEventListener('error', (e) => {
-        console.error('Video failed to load:', e);
+    video.addEventListener('error', () => {
+        console.error('Video failed to load');
         // Show the placeholder if the video fails to load
-        videoPlaceholder.style.display = 'block';
-    });
-    
-    // Log when video starts playing
-    video.addEventListener('playing', () => {
-        console.log('Video is now playing');
+        document.querySelector('.video-placeholder').style.display = 'block';
     });
 }
 
-// Load real community data from the API
+// Load real community data from the scraper API
 async function loadRealCommunityData() {
     try {
         // Show loading indicators
-        document.getElementById('profile-grid').classList.add('loading');
+        showLoadingState();
         
-        // The URL of your API
+        // The URL of your scraper API
+        // Change this to your actual API URL when deployed
         const apiUrl = getApiUrl();
         
-        // Fetch data from the API
-        const response = await fetch(`${apiUrl}/api/community-data`);
+        // Add a cache-busting parameter to avoid browser cache
+        const cacheBuster = `?_t=${new Date().getTime()}`;
+        
+        console.log(`Fetching community data from: ${apiUrl}`);
+        
+        // Fetch data from the API with cache busting
+        const response = await fetch(`${apiUrl}/api/community-data${cacheBuster}`);
         
         if (!response.ok) {
             throw new Error(`API responded with status: ${response.status}`);
         }
         
         const data = await response.json();
+        console.log('Received community data:', data);
+        
+        // Preload all images before updating UI
+        if (data.profiles && data.profiles.length > 0) {
+            await preloadImages(data.profiles);
+        }
         
         // Update UI with the real data
         updateProfileGrid(data.profiles);
         updateStats(data.stats);
         
         // Hide loading indicators
-        document.getElementById('profile-grid').classList.remove('loading');
+        hideLoadingState();
         
     } catch (error) {
         console.error('Failed to load community data:', error);
         
         // Hide loading indicators
-        document.getElementById('profile-grid').classList.remove('loading');
+        hideLoadingState();
         
         // Fall back to basic profile grid if API fails
         generateBasicProfileGrid();
+        
+        // Show error message
+        showErrorMessage('Could not load real community data. Using placeholders instead.');
     }
+}
+
+// Preload images to ensure they're in browser cache
+async function preloadImages(profiles) {
+    // Create an array of image loading promises
+    const imagePromises = profiles.map(profile => {
+        return new Promise((resolve) => {
+            if (profile.picture) {
+                const img = new Image();
+                
+                // Always resolve (even on error) so we don't block rendering
+                img.onload = () => resolve(true);
+                img.onerror = () => {
+                    // Try fallback if available
+                    if (profile.fallbackPicture) {
+                        const fallbackImg = new Image();
+                        fallbackImg.onload = () => resolve(true);
+                        fallbackImg.onerror = () => resolve(false);
+                        fallbackImg.src = profile.fallbackPicture;
+                    } else {
+                        resolve(false);
+                    }
+                };
+                
+                img.src = profile.picture;
+            } else {
+                resolve(false);
+            }
+        });
+    });
+    
+    // Wait for all images to finish loading (or failing)
+    await Promise.all(imagePromises);
+    console.log('Preloaded all profile images');
 }
 
 // Get the API URL based on the environment
@@ -97,8 +125,33 @@ function getApiUrl() {
         return 'http://localhost:3000';
     }
     
-    // For production environment
-    return window.location.origin;
+    // REPLACE_WITH_RENDER_URL - DO NOT MODIFY THIS COMMENT
+    // When deployed to Render, replace this line with your actual Render URL
+    return 'https://conservative-community-scraper.onrender.com';
+}
+
+// Show loading indicators
+function showLoadingState() {
+    // Add loading class to profile grid
+    document.getElementById('profile-grid').classList.add('loading');
+    
+    // You could add more loading indicators here
+}
+
+// Hide loading indicators
+function hideLoadingState() {
+    // Remove loading class from profile grid
+    document.getElementById('profile-grid').classList.remove('loading');
+    
+    // Remove any other loading indicators
+}
+
+// Show error message
+function showErrorMessage(message) {
+    console.error(message);
+    
+    // You could add a UI element to show the error message
+    // For now just log to console
 }
 
 // Update the profile grid with real profiles
@@ -106,37 +159,67 @@ function updateProfileGrid(profiles) {
     const profileGrid = document.getElementById('profile-grid');
     profileGrid.innerHTML = ''; // Clear existing profiles
     
-    // Use the real profiles from API
+    // Use the real profiles from scraper
     if (profiles && profiles.length > 0) {
-        // Sort profiles by follower count if available
-        const sortedProfiles = [...profiles].sort((a, b) => {
-            // If follower count is available, use it
-            if (a.followers_count && b.followers_count) {
-                return b.followers_count - a.followers_count;
-            }
-            // Otherwise, no specific order
-            return 0;
-        });
+        // Sort profiles by follower count (highest first)
+        const sortedProfiles = [...profiles].sort((a, b) => 
+            (b.followers_count || 0) - (a.followers_count || 0)
+        );
         
-        // Display all available profiles
-        sortedProfiles.forEach(profile => {
+        console.log(`Displaying ${sortedProfiles.length} verified community member profiles`);
+        
+        // Limit to 50 profiles (5 rows of 10)
+        const displayLimit = 50;
+        const displayProfiles = sortedProfiles.slice(0, displayLimit);
+        
+        // Create profile elements for each member
+        displayProfiles.forEach((profile, index) => {
             const profileImg = document.createElement('div');
             profileImg.className = 'profile-img';
             
-            // Handle image loading issues
-            const imgUrl = profile.picture || '';
-            if (imgUrl) {
-                profileImg.style.backgroundImage = `url('${imgUrl}')`;
+            // Use the profile picture or a default if missing
+            if (profile.picture) {
+                console.log(`Loading image for ${profile.username}: ${profile.picture}`);
+                
+                // Create an actual image element to test loading
+                const testImg = new Image();
+                testImg.onload = function() {
+                    console.log(`Successfully loaded image for ${profile.username}`);
+                    profileImg.style.backgroundImage = `url('${profile.picture}')`;
+                };
+                testImg.onerror = function() {
+                    console.error(`Failed to load image for ${profile.username}: ${profile.picture}`);
+                    // Try fallback image if available
+                    if (profile.fallbackPicture) {
+                        console.log(`Trying fallback image for ${profile.username}: ${profile.fallbackPicture}`);
+                        const fallbackImg = new Image();
+                        fallbackImg.onload = function() {
+                            console.log(`Successfully loaded fallback image for ${profile.username}`);
+                            profileImg.style.backgroundImage = `url('${profile.fallbackPicture}')`;
+                        };
+                        fallbackImg.onerror = function() {
+                            console.error(`Failed to load fallback image for ${profile.username}`);
+                            profileImg.classList.add('no-image');
+                        };
+                        fallbackImg.src = profile.fallbackPicture;
+                    } else {
+                        profileImg.classList.add('no-image');
+                    }
+                };
+                testImg.src = profile.picture;
+                
+                // Initially set to the main image (will be replaced if it fails)
+                profileImg.style.backgroundImage = `url('${profile.picture}')`;
             } else {
-                // Add a default empty state
-                profileImg.classList.add('empty-profile');
+                console.warn(`No image URL for ${profile.username}`);
+                profileImg.classList.add('no-image');
             }
             
-            // Add name as title
-            profileImg.setAttribute('title', profile.name || profile.username || 'Community Member');
+            // Add tooltip with name and username
+            profileImg.setAttribute('title', `${profile.name} (@${profile.username})`);
             
-            // Add a link to their X profile if username is available
-            if (profile.username) {
+            // Optional: make profiles clickable to their X profiles
+            if (profile.username && profile.username !== 'more_patriots') {
                 profileImg.addEventListener('click', () => {
                     window.open(`https://x.com/${profile.username}`, '_blank');
                 });
@@ -145,12 +228,20 @@ function updateProfileGrid(profiles) {
             
             profileGrid.appendChild(profileImg);
         });
+        
+        // Add the "and more" indicator after the 5th row
+        const andMoreProfile = document.createElement('div');
+        andMoreProfile.className = 'profile-img and-more';
+        andMoreProfile.setAttribute('title', 'Join to see all community members!');
+        andMoreProfile.innerHTML = '<span>AND<br>MORE</span>';
+        andMoreProfile.addEventListener('click', () => {
+            window.open('https://x.com/i/communities/1922392299163595186', '_blank');
+        });
+        andMoreProfile.style.cursor = 'pointer';
+        profileGrid.appendChild(andMoreProfile);
     } else {
-        // Show empty state message
-        const emptyMessage = document.createElement('div');
-        emptyMessage.className = 'empty-state-message';
-        emptyMessage.textContent = 'No community profiles available. Please set up Twitter API credentials.';
-        profileGrid.appendChild(emptyMessage);
+        // Fallback to basic grid if no profiles
+        generateBasicProfileGrid();
     }
 }
 
@@ -175,17 +266,16 @@ function updateStats(stats) {
     const likesEl = document.querySelector('#likes .stat-value');
     const retweetsEl = document.querySelector('#retweets .stat-value');
     
-    // Make sure we always display a number (0 or actual value)
-    if (impressionsEl) {
-        impressionsEl.textContent = formatNumber(stats.impressions || 0);
+    if (stats.impressions) {
+        impressionsEl.textContent = formatNumber(stats.impressions);
     }
     
-    if (likesEl) {
-        likesEl.textContent = formatNumber(stats.likes || 0);
+    if (stats.likes) {
+        likesEl.textContent = formatNumber(stats.likes);
     }
     
-    if (retweetsEl) {
-        retweetsEl.textContent = formatNumber(stats.retweets || 0);
+    if (stats.retweets) {
+        retweetsEl.textContent = formatNumber(stats.retweets);
     }
 }
 
@@ -194,11 +284,12 @@ function generateBasicProfileGrid() {
     const profileGrid = document.getElementById('profile-grid');
     profileGrid.innerHTML = ''; // Clear any existing profiles
     
-    // Show empty state message
-    const emptyMessage = document.createElement('div');
-    emptyMessage.className = 'empty-state-message';
-    emptyMessage.textContent = 'No community profiles available. Please set up Twitter API credentials.';
-    profileGrid.appendChild(emptyMessage);
+    const totalProfiles = 80;
+    for (let i = 0; i < totalProfiles; i++) {
+        const profileImg = document.createElement('div');
+        profileImg.className = 'profile-img';
+        profileGrid.appendChild(profileImg);
+    }
 }
 
 // Format numbers with commas for thousands
@@ -206,13 +297,13 @@ function formatNumber(num) {
     return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
-// Copy flag emoji to clipboard
+// Copy coin ID to clipboard
 function setupCopyButton() {
     const copyBtn = document.querySelector('.copy-btn');
-    const flag = document.querySelector('.flag').textContent;
+    const coinId = document.querySelector('.coin-id').textContent;
     
     copyBtn.addEventListener('click', () => {
-        navigator.clipboard.writeText(flag)
+        navigator.clipboard.writeText(coinId)
             .then(() => {
                 const originalText = copyBtn.textContent;
                 copyBtn.textContent = 'Copied!';
