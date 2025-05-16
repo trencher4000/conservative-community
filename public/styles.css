@@ -127,15 +127,21 @@ h2 {
 }
 
 .stats-box {
-    flex: 0 1 auto;
     background-color: #333;
     border-radius: 10px;
     padding: 0.75rem;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    min-width: 140px;
     border-left: 3px solid #ff3b30;
+}
+
+.stats-box:first-child {
+    flex: 0 0 30%;
+}
+
+.stats-box:last-child {
+    flex: 0 0 70%;
 }
 
 .stats-label {
@@ -287,11 +293,16 @@ footer {
     }
     
     .stats-box {
-        flex: 1;
-        width: auto;
-        max-width: none;
         padding: 0.4rem 0.6rem;
         min-width: 0;
+    }
+    
+    .stats-box:first-child {
+        flex: 0 0 30%;
+    }
+    
+    .stats-box:last-child {
+        flex: 0 0 70%;
     }
     
     .stats-label {
