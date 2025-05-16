@@ -31,12 +31,17 @@ h1 {
     margin-bottom: 0.5rem;
     text-transform: uppercase;
     letter-spacing: 2px;
+    color: #fff;
+    text-shadow: 2px 2px 0px #ff3b30;
 }
 
 .tagline {
     font-size: 1.1rem;
     margin-bottom: 1.5rem;
     font-weight: 500;
+    border-bottom: 1px solid rgba(255, 59, 48, 0.3);
+    padding-bottom: 8px;
+    display: inline-block;
 }
 
 .join-btn {
@@ -49,10 +54,12 @@ h1 {
     font-weight: bold;
     margin: 1rem 0;
     transition: all 0.3s ease;
+    border: 2px solid transparent;
 }
 
 .join-btn:hover {
-    background-color: #f0f0f0;
+    background-color: #ff3b30;
+    color: #fff;
     transform: translateY(-2px);
 }
 
@@ -100,6 +107,8 @@ video:not([src=""]) ~ .video-placeholder {
 h2 {
     font-size: 2rem;
     margin-bottom: 2rem;
+    color: #fff;
+    text-shadow: 1px 1px 0px #ff3b30;
 }
 
 .stats-container {
@@ -121,6 +130,7 @@ h2 {
     flex-direction: column;
     justify-content: center;
     min-width: 140px;
+    border-left: 3px solid #ff3b30;
 }
 
 .stats-label {
@@ -236,6 +246,14 @@ footer {
     .profile-grid {
         grid-template-columns: repeat(5, 1fr);
     }
+    
+    .stats-container {
+        gap: 1rem;
+    }
+    
+    h1 {
+        font-size: 3.5rem;
+    }
 }
 
 @media (max-width: 576px) {
@@ -245,11 +263,26 @@ footer {
     
     .stats-container {
         flex-direction: column;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    .stats-box {
+        width: 100%;
+        max-width: 280px;
     }
     
     .engagement-stats {
         flex-direction: column;
         gap: 1.5rem;
+    }
+    
+    h1 {
+        font-size: 3rem;
+    }
+    
+    .coin-id {
+        font-size: 0.75rem;
     }
 }
 
@@ -342,6 +375,7 @@ footer {
     align-items: center !important;
     justify-content: center !important;
     text-align: center !important;
+    border: 2px solid #ff3b30 !important;
 }
 
 .profile-img.and-more span {
