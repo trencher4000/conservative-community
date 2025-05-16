@@ -32,7 +32,7 @@ h1 {
     text-transform: uppercase;
     letter-spacing: 2px;
     color: #fff;
-    text-shadow: 2px 2px 0px #ff3b30;
+    text-shadow: none;
 }
 
 .tagline {
@@ -281,6 +281,12 @@ footer {
     
     .coin-id {
         font-size: 0.75rem;
+    }
+}
+
+@media (max-width: 400px) {
+    h1 {
+        font-size: 2.5rem;
     }
 }
 
