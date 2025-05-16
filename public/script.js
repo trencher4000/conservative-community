@@ -279,19 +279,9 @@ async function loadLatestPosts() {
         // If API fails or returns no posts, use sample data as fallback
         const samplePosts = [
             {
-                id: '1',
-                text: 'What will be the catalyst for $Cnsrv to soar?',
-                created_at: new Date().toISOString(),
-                author: {
-                    name: 'BreezySwingEasy',
-                    username: 'BreezySwingEasy',
-                    profile_image_url: 'https://pbs.twimg.com/profile_images/1642193374073716737/ALg37upL_400x400.jpg'
-                }
-            },
-            {
-                id: '2',
-                text: 'How much faith do you have in 3 letter agencies?',
-                created_at: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+                id: '1923147301851173129',
+                text: 'I\'ll show the Dems proof of corruption. My entire history in the White House of working with Biden.',
+                created_at: new Date('2024-05-16T00:00:00Z').toISOString(),
                 author: {
                     name: 'Kevin Sorbo',
                     username: 'ksorbs',
@@ -299,13 +289,23 @@ async function loadLatestPosts() {
                 }
             },
             {
-                id: '3',
-                text: 'Krassencuck over here isn\'t used to accountability, hopefully the 5 years in prison and 250,000 dollar fine gives him time to think about his actions',
-                created_at: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
+                id: '1923132589851779496',
+                text: '$CNSRV Conservative coin up 400% in USDT pairing! How high can we get? We decide!',
+                created_at: new Date('2024-05-15T22:00:00Z').toISOString(),
                 author: {
-                    name: 'BlitzProd',
-                    username: 'BlitzBrigadeNFL',
-                    profile_image_url: 'https://pbs.twimg.com/profile_images/1527344684807376896/6M-eU3yI_400x400.jpg'
+                    name: 'ANTUNES',
+                    username: 'Antunes1',
+                    profile_image_url: 'https://pbs.twimg.com/profile_images/1699878638615646208/gWLRuqvY_400x400.jpg'
+                }
+            },
+            {
+                id: '1922417753996341739',
+                text: 'Get ready for the biggest CONSERVATIVE TAKEOVER online. #CNSRV',
+                created_at: new Date('2024-05-14T12:00:00Z').toISOString(),
+                author: {
+                    name: 'Laura Loomer',
+                    username: 'LauraLoomer',
+                    profile_image_url: 'https://pbs.twimg.com/profile_images/1763607303050702848/7CAcw2xu_400x400.jpg'
                 }
             }
         ];
