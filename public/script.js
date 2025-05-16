@@ -8,12 +8,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Load real community data
     loadRealCommunityData();
     
-    // Load latest community posts
-    loadLatestPosts();
+    // We no longer need to load tweets as they're hardcoded in HTML
+    // loadLatestPosts();
     
     // Refresh data periodically (every 15 minutes)
     setInterval(loadRealCommunityData, 15 * 60 * 1000);
-    setInterval(loadLatestPosts, 15 * 60 * 1000);
+    // setInterval(loadLatestPosts, 15 * 60 * 1000);
 });
 
 // Set up video functionality
