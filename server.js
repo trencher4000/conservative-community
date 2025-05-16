@@ -6,13 +6,31 @@ const { TwitterApi } = require('twitter-api-v2');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// DISABLE ALL TWITTER API CALLS TO PREVENT RATE LIMITING
-const DISABLE_TWITTER_API = true;
+// For debugging
+console.log('Node environment:', process.env.NODE_ENV);
+console.log('Current directory:', process.cwd());
 
 // Environment variables for Twitter API (can be set in Render environment variables)
 const TWITTER_API_KEY = process.env.TWITTER_API_KEY || '';
 const TWITTER_API_SECRET = process.env.TWITTER_API_SECRET || '';
 const TWITTER_BEARER_TOKEN = process.env.TWITTER_BEARER_TOKEN || '';
+
+// Check if Twitter API credentials are available
+console.log('Twitter API credentials available:', {
+  TWITTER_API_KEY: TWITTER_API_KEY ? 'Set' : 'Not set',
+  TWITTER_API_SECRET: TWITTER_API_SECRET ? 'Set' : 'Not set',
+  TWITTER_BEARER_TOKEN: TWITTER_BEARER_TOKEN ? 'Set' : 'Not set'
+});
+
+// Check for environment variables that might disable Twitter API
+const disableTwitterApi = process.env.DISABLE_TWITTER_API === 'true';
+if (disableTwitterApi) {
+  console.log('Twitter API calls are disabled by DISABLE_TWITTER_API environment variable');
+} else if (!TWITTER_API_KEY && !TWITTER_API_SECRET && !TWITTER_BEARER_TOKEN) {
+  console.log('Twitter API calls are disabled due to missing API credentials');
+} else {
+  console.log('Twitter API calls should be enabled if credentials are valid');
+}
 
 // Conservative community ID on X
 const CONSERVATIVE_COMMUNITY_ID = '1922392299163595186';
@@ -21,24 +39,22 @@ const CONSERVATIVE_COMMUNITY_ID = '1922392299163595186';
 const API_CACHE_DURATION = 60 * 60 * 1000; // 1 hour in milliseconds
 let lastApiRequest = 0; // Track when we last made an API request
 
-// Initialize Twitter client if credentials are available AND API calls are enabled
+// Initialize Twitter client if credentials are available
 let twitterClient = null;
 try {
-  if (!DISABLE_TWITTER_API) {
-    if (TWITTER_BEARER_TOKEN) {
-      twitterClient = new TwitterApi(TWITTER_BEARER_TOKEN);
-      console.log('Twitter API client initialized with bearer token');
-    } else if (TWITTER_API_KEY && TWITTER_API_SECRET) {
-      twitterClient = new TwitterApi({
-        appKey: TWITTER_API_KEY,
-        appSecret: TWITTER_API_SECRET
-      });
-      console.log('Twitter API client initialized with app credentials');
-    } else {
-      console.warn('No Twitter API credentials found, using static data only');
-    }
+  if (disableTwitterApi) {
+    console.warn('Twitter API client initialization skipped due to DISABLE_TWITTER_API=true');
+  } else if (TWITTER_BEARER_TOKEN) {
+    twitterClient = new TwitterApi(TWITTER_BEARER_TOKEN);
+    console.log('Twitter API client initialized with bearer token');
+  } else if (TWITTER_API_KEY && TWITTER_API_SECRET) {
+    twitterClient = new TwitterApi({
+      appKey: TWITTER_API_KEY,
+      appSecret: TWITTER_API_SECRET
+    });
+    console.log('Twitter API client initialized with app credentials');
   } else {
-    console.log('Twitter API calls are disabled to prevent rate limiting');
+    console.warn('No Twitter API credentials found, using static data only');
   }
 } catch (error) {
   console.error('Error initializing Twitter API client:', error.message);
@@ -64,6 +80,27 @@ if (publicDirExists) {
 
 // Serve static files from the public directory
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Serve static files from the root directory (for index.html)
+app.use(express.static(path.join(__dirname)));
+
+// Handle requests for missing profile pictures
+app.get('/images/snaplytics.io_X_*_profile_picture.jpg', (req, res, next) => {
+  // Extract username from the URL
+  const picturePath = req.path;
+  console.log('Looking for profile picture:', picturePath);
+  
+  // Check if the file exists in the public directory
+  const publicFilePath = path.join(__dirname, 'public', picturePath);
+  if (fs.existsSync(publicFilePath)) {
+    console.log('Found profile picture in public directory:', publicFilePath);
+    return res.sendFile(publicFilePath);
+  }
+  
+  console.log('Profile picture not found:', publicFilePath);
+  // If it doesn't exist, continue to the next middleware
+  next();
+});
 
 // Health check endpoint for Render
 app.get('/health', (req, res) => {
@@ -438,71 +475,12 @@ async function fetchCommunityData() {
 // API endpoint to get community data
 app.get('/api/community-data', (req, res) => {
   console.log('API request received for community data');
-  
-  // Return static data when Twitter API is disabled
-  if (DISABLE_TWITTER_API) {
-    const staticCommunityData = {
-      profiles: [],
-      stats: {
-        members: 903,
-        impressions: 254789,
-        likes: 12543,
-        retweets: 3982
-      },
-      lastUpdated: new Date().toISOString(),
-      isStatic: true
-    };
-    return res.json(staticCommunityData);
-  }
-  
   res.json(communityData);
 });
 
-// API endpoint to fetch community posts
+// New API endpoint to fetch community posts
 app.get('/api/community-posts', async (req, res) => {
   console.log('API request received for community posts');
-  
-  // When Twitter API is disabled, return hardcoded tweets
-  if (DISABLE_TWITTER_API) {
-    const staticPosts = [
-      {
-        id: '1923147301851173129',
-        text: 'James Comey just deleted this death threat towards Trump from his Instagram.',
-        created_at: new Date('2024-05-15T00:00:00Z').toISOString(),
-        author: {
-          name: 'Kevin Sorbo',
-          username: 'ksorbs',
-          profile_image_url: '/images/snaplytics.io_X_ksorbs_profile_picture.jpg'
-        }
-      },
-      {
-        id: '1923132589851779496',
-        text: 'in a decent society, everyone in this room would be jailed.',
-        created_at: new Date('2024-05-15T00:00:00Z').toISOString(),
-        author: {
-          name: 'ANTUNES',
-          username: 'Antunes1',
-          profile_image_url: '/images/snaplytics.io_X_Antunes1_profile_picture.jpg'
-        }
-      },
-      {
-        id: '1922417753996341739',
-        text: 'NEW:\n\nRepublicans appear to be letting their guard down ahead of the 2026 midterms at the expense of President Trump.\n\nAccording to FEC filings reviewed by @LoomerUnleashed, the DSCC @dscc has paid $698,847.64 to the Elias Law Group since January 1, 2025, for services listed as "LEGAL SERVICES LEGAL FUND" and other legal work.',
-        created_at: new Date('2024-05-14T00:00:00Z').toISOString(),
-        author: {
-          name: 'Laura Loomer',
-          username: 'LauraLoomer',
-          profile_image_url: '/images/snaplytics.io_X_LauraLoomer_profile_picture.jpg'
-        }
-      }
-    ];
-    
-    return res.json({
-      success: true,
-      message: 'Static posts provided (Twitter API disabled)',
-      posts: staticPosts
-    });
-  }
   
   if (!twitterClient) {
     console.log('Twitter API client not available, returning error');
