@@ -254,30 +254,10 @@ async function loadLatestPosts() {
     
     try {
         // Clear any error states
-        postsContainer.innerHTML = '<div class="loading-message">Loading latest posts...</div>';
+        postsContainer.innerHTML = '<div class="loading-message">Loading posts...</div>';
         
-        // Get API URL
-        const apiUrl = getApiUrl();
-        
-        // Try to fetch latest posts data
-        try {
-            const response = await fetch(`${apiUrl}/api/community-posts`);
-            
-            if (response.ok) {
-                const data = await response.json();
-                
-                // If we have posts data, display them
-                if (data && data.posts && data.posts.length > 0) {
-                    displayPosts(data.posts);
-                    return;
-                }
-            }
-        } catch (err) {
-            console.log('Could not fetch posts from API, using fallback data');
-        }
-        
-        // If API fails or returns no posts, use sample data as fallback
-        const samplePosts = [
+        // Use these specific tweets as requested
+        const specificTweets = [
             {
                 id: '1923147301851173129',
                 text: 'I\'ll show the Dems proof of corruption. My entire history in the White House of working with Biden.',
@@ -310,7 +290,8 @@ async function loadLatestPosts() {
             }
         ];
         
-        displayPosts(samplePosts);
+        // Always display these specific tweets
+        displayPosts(specificTweets);
         
     } catch (error) {
         console.error('Failed to load community posts:', error);
@@ -318,7 +299,7 @@ async function loadLatestPosts() {
         // Show fallback/error state
         postsContainer.innerHTML = `
             <div class="no-posts-message">
-                <p>Could not load latest posts.</p>
+                <p>Could not load posts.</p>
                 <p>Visit <a href="https://x.com/i/communities/1922392299163595186" target="_blank">our X community</a> to see all posts.</p>
             </div>
         `;
