@@ -119,8 +119,8 @@ h2 {
 .stats-container {
     display: flex;
     justify-content: center;
-    margin-bottom: 2rem;
-    gap: 2rem;
+    margin-bottom: 1.5rem;
+    gap: 1rem;
     max-width: 600px;
     margin-left: auto;
     margin-right: auto;
@@ -130,7 +130,7 @@ h2 {
     flex: 0 1 auto;
     background-color: #333;
     border-radius: 10px;
-    padding: 1rem;
+    padding: 0.75rem;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -140,11 +140,11 @@ h2 {
 
 .stats-label {
     font-size: 0.9rem;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
 }
 
 .stats-number {
-    font-size: 2rem;
+    font-size: 1.75rem;
     font-weight: bold;
 }
 
@@ -253,7 +253,20 @@ footer {
     }
     
     .stats-container {
-        gap: 1rem;
+        gap: 0.75rem;
+    }
+    
+    .stats-box {
+        padding: 0.5rem 0.75rem;
+    }
+    
+    .stats-label {
+        font-size: 0.8rem;
+        margin-bottom: 0.2rem;
+    }
+    
+    .stats-number {
+        font-size: 1.5rem;
     }
     
     h1 {
@@ -267,14 +280,41 @@ footer {
     }
     
     .stats-container {
-        flex-direction: column;
+        flex-direction: row;
         align-items: center;
-        gap: 0.75rem;
+        gap: 0.5rem;
+        max-width: 100%;
     }
     
     .stats-box {
-        width: 100%;
-        max-width: 280px;
+        flex: 1;
+        width: auto;
+        max-width: none;
+        padding: 0.4rem 0.6rem;
+        min-width: 0;
+    }
+    
+    .stats-label {
+        font-size: 0.7rem;
+        margin-bottom: 0.1rem;
+    }
+    
+    .stats-number {
+        font-size: 1.3rem;
+    }
+    
+    .coin-id {
+        font-size: 0.65rem;
+        padding: 3px 5px;
+    }
+    
+    .copy-btn {
+        font-size: 0.7rem;
+    }
+    
+    h2 {
+        font-size: 1.6rem;
+        margin-bottom: 1rem;
     }
     
     .engagement-stats {
