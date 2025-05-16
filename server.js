@@ -14,6 +14,10 @@ const TWITTER_BEARER_TOKEN = process.env.TWITTER_BEARER_TOKEN || '';
 // Conservative community ID on X
 const CONSERVATIVE_COMMUNITY_ID = '1922392299163595186';
 
+// Add a new cache duration constant near the top of the file
+const API_CACHE_DURATION = 60 * 60 * 1000; // 1 hour in milliseconds
+let lastApiRequest = 0; // Track when we last made an API request
+
 // Initialize Twitter client if credentials are available
 let twitterClient = null;
 try {
@@ -88,69 +92,108 @@ async function fetchCommunityData() {
     return false;
   }
 
+  // Check if we're within rate limits
+  const now = Date.now();
+  if (lastApiRequest > 0 && now - lastApiRequest < 15 * 60 * 1000) { // 15 minute minimum between requests
+    console.log(`API request too soon, last request was ${Math.round((now - lastApiRequest)/1000)} seconds ago. Waiting at least 15 minutes between requests.`);
+    return false;
+  }
+
   try {
     console.log('Fetching community data from Twitter API...');
+    lastApiRequest = now; // Update last request time
     
     // Get the read-only client
     const readOnlyClient = twitterClient.readOnly;
     
     // Get community details
-    const community = await readOnlyClient.v2.community(CONSERVATIVE_COMMUNITY_ID, {
-      'community.fields': ['member_count']
-    });
-    
-    console.log('Community data:', community.data);
-    
-    // Get community members (needs elevated access or community admin rights)
-    // This might require specific permissions from Twitter
-    let members = [];
     try {
-      const membersResponse = await readOnlyClient.v2.communityMembers(CONSERVATIVE_COMMUNITY_ID, {
-        max_results: 100,
-        'user.fields': ['profile_image_url', 'name', 'username']
+      const community = await readOnlyClient.v2.community(CONSERVATIVE_COMMUNITY_ID, {
+        'community.fields': ['member_count']
       });
-      members = membersResponse.data || [];
-      console.log(`Found ${members.length} community members`);
-    } catch (memberError) {
-      console.warn('Could not fetch community members, using simulated profiles:', memberError.message);
-      // If we can't get members, generate some based on the community name
-      members = generateDefaultProfiles(20);
+      
+      console.log('Community data:', community.data);
+      
+      // Get community members (needs elevated access or community admin rights)
+      // This might require specific permissions from Twitter
+      let members = [];
+      try {
+        const membersResponse = await readOnlyClient.v2.communityMembers(CONSERVATIVE_COMMUNITY_ID, {
+          max_results: 50, // Reduced from 100 to stay within rate limits
+          'user.fields': ['profile_image_url', 'name', 'username']
+        });
+        members = membersResponse.data || [];
+        console.log(`Found ${members.length} community members`);
+      } catch (memberError) {
+        console.warn('Could not fetch community members, using simulated profiles:', memberError.message);
+        // If we can't get members, generate some based on the community name
+        members = generateDefaultProfiles(20);
+      }
+      
+      // Map members to profiles format
+      const profiles = members.map(member => ({
+        name: member.name || 'Community Member',
+        picture: member.profile_image_url || `https://via.placeholder.com/400?text=${member.username}`,
+        username: member.username
+      }));
+      
+      // Get engagement stats for the community
+      // This is more complex and might require aggregating data from community posts
+      // For now, we'll use estimated values or static values
+      const stats = {
+        members: community.data.member_count || 600,
+        impressions: 254789, // Static value as this is hard to get from API
+        likes: 12543,       // Static value as this is hard to get from API
+        retweets: 3982      // Static value as this is hard to get from API
+      };
+      
+      // Update community data with real API data
+      communityData = {
+        profiles: profiles.length > 0 ? profiles : communityData.profiles,
+        stats: {
+          members: stats.members || communityData.stats.members,
+          impressions: stats.impressions || communityData.stats.impressions,
+          likes: stats.likes || communityData.stats.likes,
+          retweets: stats.retweets || communityData.stats.retweets
+        },
+        lastUpdated: new Date().toISOString(),
+        isStatic: false,
+        nextUpdateAvailable: new Date(now + API_CACHE_DURATION).toISOString()
+      };
+      
+      console.log('Community data fetched successfully');
+      return true;
+    } catch (apiError) {
+      // Check if this is a rate limit error
+      if (apiError.code === 429) {
+        console.log('Rate limit exceeded, checking reset time...');
+        
+        // Try to get the rate limit reset time from the error
+        const resetTimestamp = apiError.rateLimit?.reset;
+        if (resetTimestamp) {
+          const resetDate = new Date(resetTimestamp * 1000);
+          const waitTime = resetDate - new Date();
+          console.log(`Rate limit resets at ${resetDate.toISOString()} (in ${Math.round(waitTime/1000/60)} minutes)`);
+          
+          // Update the next update time in the community data
+          communityData.nextUpdateAvailable = resetDate.toISOString();
+        } else {
+          // If we can't get the reset time, default to 15 minutes
+          communityData.nextUpdateAvailable = new Date(now + 15 * 60 * 1000).toISOString();
+        }
+        
+        // Still return false as we couldn't get fresh data
+        return false;
+      }
+      
+      // If not a rate limit error, rethrow
+      throw apiError;
     }
-    
-    // Map members to profiles format
-    const profiles = members.map(member => ({
-      name: member.name || 'Community Member',
-      picture: member.profile_image_url || `https://via.placeholder.com/400?text=${member.username}`,
-      username: member.username
-    }));
-    
-    // Get engagement stats for the community
-    // This is more complex and might require aggregating data from community posts
-    // For now, we'll use estimated values or static values
-    const stats = {
-      members: community.data.member_count || 600,
-      impressions: 254789, // Static value as this is hard to get from API
-      likes: 12543,       // Static value as this is hard to get from API
-      retweets: 3982      // Static value as this is hard to get from API
-    };
-    
-    // Update community data with real API data
-    communityData = {
-      profiles: profiles.length > 0 ? profiles : communityData.profiles,
-      stats: {
-        members: stats.members || communityData.stats.members,
-        impressions: stats.impressions || communityData.stats.impressions,
-        likes: stats.likes || communityData.stats.likes,
-        retweets: stats.retweets || communityData.stats.retweets
-      },
-      lastUpdated: new Date().toISOString(),
-      isStatic: false
-    };
-    
-    console.log('Community data fetched successfully');
-    return true;
   } catch (error) {
     console.error('Error fetching community data from Twitter API:', error);
+    
+    // Update the next update time in the community data
+    communityData.nextUpdateAvailable = new Date(now + 15 * 60 * 1000).toISOString();
     return false;
   }
 }
@@ -166,6 +209,23 @@ app.post('/api/refresh-data', async (req, res) => {
   try {
     console.log('Manual refresh requested');
     
+    // Check if we can make an API request or if we're rate limited
+    const now = Date.now();
+    const nextUpdateTime = communityData.nextUpdateAvailable ? new Date(communityData.nextUpdateAvailable).getTime() : 0;
+    
+    if (nextUpdateTime > now) {
+      // We're still within the rate limit window
+      const waitTimeMinutes = Math.round((nextUpdateTime - now) / 1000 / 60);
+      console.log(`Rate limited. Next update available in ~${waitTimeMinutes} minutes`);
+      
+      return res.json({
+        success: false,
+        message: `Rate limited. Next update available in ~${waitTimeMinutes} minutes`,
+        isStatic: communityData.isStatic,
+        nextUpdateAvailable: communityData.nextUpdateAvailable
+      });
+    }
+    
     if (twitterClient) {
       console.log('Attempting to fetch fresh data from Twitter API...');
       const success = await fetchCommunityData();
@@ -175,7 +235,16 @@ app.post('/api/refresh-data', async (req, res) => {
         return res.json({ 
           success: true, 
           message: 'Data refreshed with real community data',
-          isStatic: false
+          isStatic: false,
+          nextUpdateAvailable: communityData.nextUpdateAvailable
+        });
+      } else {
+        // API request made but failed or rate limited
+        return res.json({
+          success: false,
+          message: 'Could not refresh with API. Using existing data.',
+          isStatic: communityData.isStatic,
+          nextUpdateAvailable: communityData.nextUpdateAvailable
         });
       }
     }
@@ -195,18 +264,21 @@ app.post('/api/refresh-data', async (req, res) => {
     communityData.stats.likes += Math.floor(Math.random() * 100);
     communityData.stats.retweets += Math.floor(Math.random() * 50);
     communityData.isStatic = true;
+    communityData.nextUpdateAvailable = new Date(now + 5 * 60 * 1000).toISOString(); // 5 minute cooldown for static data
     
     console.log('Data refreshed with static data');
     res.json({ 
       success: true, 
       message: 'Data refreshed with simulated data',
-      isStatic: true
+      isStatic: true,
+      nextUpdateAvailable: communityData.nextUpdateAvailable
     });
   } catch (error) {
     console.error('Error refreshing data:', error);
     res.status(500).json({ 
       success: false, 
-      error: error.message 
+      error: error.message,
+      nextUpdateAvailable: communityData.nextUpdateAvailable
     });
   }
 });

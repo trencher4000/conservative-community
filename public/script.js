@@ -28,10 +28,17 @@ function setupRefreshButton() {
     dataSourceIndicator.className = 'data-source static';
     dataSourceIndicator.innerHTML = 'Using Static Data';
     
-    // Add both elements to the page
+    // Create next update indicator
+    const nextUpdateIndicator = document.createElement('div');
+    nextUpdateIndicator.id = 'next-update';
+    nextUpdateIndicator.className = 'next-update';
+    nextUpdateIndicator.style.display = 'none';
+    
+    // Add all elements to the page
     const statsContainer = document.querySelector('.stats-container');
     statsContainer.insertAdjacentElement('afterend', refreshButton);
     statsContainer.insertAdjacentElement('afterend', dataSourceIndicator);
+    statsContainer.insertAdjacentElement('afterend', nextUpdateIndicator);
     
     // Add click handler
     refreshButton.addEventListener('click', async () => {
@@ -53,7 +60,7 @@ function setupRefreshButton() {
             console.log('Refresh result:', result);
             
             // Show success message
-            refreshButton.innerHTML = '✅ Refreshed!';
+            refreshButton.innerHTML = result.success ? '✅ Refreshed!' : '⚠️ Rate Limited';
             
             // Update source indicator
             if (result.isStatic) {
@@ -166,6 +173,41 @@ async function loadRealCommunityData() {
             }
         }
         
+        // Update next update indicator if available
+        const nextUpdateIndicator = document.getElementById('next-update');
+        if (nextUpdateIndicator && data.nextUpdateAvailable) {
+            const nextUpdate = new Date(data.nextUpdateAvailable);
+            const now = new Date();
+            
+            if (nextUpdate > now) {
+                const timeDiff = nextUpdate - now;
+                const minutes = Math.round(timeDiff / 1000 / 60);
+                
+                if (minutes > 0) {
+                    nextUpdateIndicator.style.display = 'block';
+                    nextUpdateIndicator.innerHTML = `Next update available in ~${minutes} minutes`;
+                    
+                    // Disable refresh button if there's a waiting period
+                    const refreshButton = document.querySelector('.refresh-btn');
+                    if (refreshButton) {
+                        refreshButton.disabled = true;
+                        
+                        // Set a timer to re-enable the button
+                        setTimeout(() => {
+                            refreshButton.disabled = false;
+                            nextUpdateIndicator.style.display = 'none';
+                        }, timeDiff);
+                    }
+                } else {
+                    nextUpdateIndicator.style.display = 'none';
+                }
+            } else {
+                nextUpdateIndicator.style.display = 'none';
+            }
+        } else if (nextUpdateIndicator) {
+            nextUpdateIndicator.style.display = 'none';
+        }
+        
         // Hide loading indicators
         hideLoadingState();
         
@@ -186,6 +228,12 @@ async function loadRealCommunityData() {
         if (dataSourceIndicator) {
             dataSourceIndicator.className = 'data-source static';
             dataSourceIndicator.innerHTML = 'Using Static Data';
+        }
+        
+        // Hide next update indicator
+        const nextUpdateIndicator = document.getElementById('next-update');
+        if (nextUpdateIndicator) {
+            nextUpdateIndicator.style.display = 'none';
         }
     }
 }
